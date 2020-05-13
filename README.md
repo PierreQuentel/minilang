@@ -1,16 +1,18 @@
-Data types
-==========
+# Data types
 
-numbers
--------
+## numbers
+
+```python
 # integer
 x = 1
 
 # float
 y = 3.14
+```
 
-strings
--------
+## strings
+
+```python
 # with simple quotes
 s1 = 'string'
 
@@ -42,6 +44,7 @@ s2[0] = 'S' # raises an error
 
 # concatenation with +
 s = 'S' + s2[1:] # 'String'
+```
 
 lists
 -----
