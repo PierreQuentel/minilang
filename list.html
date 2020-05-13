@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script type="text/javascript" src="builtins.js"></script>
+<script type="text/javascript" src="ml2js.js"></script>
+<link rel="stylesheet" href="minilang.css">
+</head>
+
+<body>
+<button id="run">run</button>
+<br>
+<table width="100%">
+<tr>
+<td valign="top">
+<textarea id="editor" rows="30" cols="60" autocomplete="off">
+# definition with comma-separated values
+t = ["a", 1, 3.14]
+
+# definition as a range of integers
+r = [2:5] # same as [2, 3, 4] (last number is not included)
+r = [:5] # missing start = 0
+
+# same access to elements and slices as for strings
+t[2] # 3.14
+t[-2] # 1
+t[:] # copy the whole list
+
+# an existing element can be reset
+t[0] = "b" # t is ["b", 1, 3.14]
+
+# a sublist can be replaced by another list
+t[1:2] = ["c"] # remove t[1:2] and put ["c"] instead = ["b", "c"]
+
+# if the replacement is empty, this removes elements
+t[:1] = [] # remove the first element = ["c"]
+t[:] = [] # clears the list
+
+# add an element at the end of the list
+t <= "d" # think of <= as "left arrow", not "less or equal"
+
+t[:-1] = t[:-1] + ["e"]
+print(t)
+
+# concatenate two lists
+if ["a", "b"] + [:2] != ["a", "b", 0, 1]
+  exit
+</textarea>
+</td>
+<td valign="top">
+
+<textarea id="output" cols=60 rows=30 autocomplete="off"></textarea>
+
+</body>
+</html>

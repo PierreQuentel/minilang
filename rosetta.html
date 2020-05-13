@@ -1,0 +1,197 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script type="text/javascript" src="builtins.js"></script>
+<script type="text/javascript" src="ml2js.js"></script>
+<link rel="stylesheet" href="minilang.css">
+</head>
+
+<body>
+<button id="run">run</button>
+<br>
+<table width="100%">
+<tr>
+<td valign="top">
+<textarea id="editor" rows="30" cols="60" autocomplete="off">
+# Fibonacci suite
+def fibo(n)
+  exit 1 if n == 0
+  exit 1 if n == 1
+  exit fibo(n - 2) + fibo(n - 1)
+
+print("fibo(10)", fibo(10))
+
+# Factorial
+def fact(n)
+  res = 1
+  i = 2
+  loop
+    exit res if i > n
+    res = res * i
+    i = i + 1
+
+print("fact(10)", fact(10))
+
+# Palindrome
+def is_palindrome(s)
+  len = 0
+  loop s
+    len = len + 1
+  i0 = 0
+  i1 = len - 1
+  res = 1
+  loop
+    if s[i0] != s[i1]
+      res = 0
+      exit
+    i0 = i0 + 1
+    i1 = i1 - 1
+    exit if i1 <= i0
+
+  exit s + " is a palindrome" if res == 1
+  exit s + " is not a palindrome" if res == 0
+
+print(is_palindrome("laval"))
+print(is_palindrome("abba"))
+print(is_palindrome("azerty"))
+
+# stack
+def empty(t)
+  exit "false" if t
+  exit "true"
+
+def push(t, item)
+  t <= item
+
+def pop(t)
+  res = t[-1]
+  t[-1:] = []
+  exit res
+
+t = []
+loop 5:i
+  push(t, i * 2)
+
+print("after push", t)
+print("pop pop pop", pop(t), pop(t), pop(t))
+print("empty ?", empty(t))
+
+# binary search
+def binary_search(t, value)
+  low = 0
+  len = 0
+  loop t
+    len = len + 1
+  high = len - 1
+  loop
+    exit -1 if low > high
+    mid = (low + high) // 2
+    exit mid if value == t[mid]
+    if t[mid] > value
+      high = mid - 1
+    if t[mid] < value
+      low = mid + 1
+
+t = [0, 1, 2, 5, 7, 10]
+print("position of", 2, "in", t, binary_search(t, 2))
+print("position of", 3, "in", t, binary_search(t, 3))
+
+# power and root
+def pow(x, n)
+  # real x to power n
+  res = 1
+  loop [:n]
+    res = res * x
+  exit res
+
+print("2 ** 3 =", pow(2, 3))
+
+def root(x, n)
+  # n-root of real positive number x
+  # Newton formula : u = (((n - 1) * u) + (x / u ** (n - 1))) / n
+  u = x / n
+  precision = 0.00000000000001
+  loop
+    u1 = (n - 1) * u
+    u2 = x / pow(u, n - 1)
+    u = (u1 + u2) / n
+    delta = x - pow(u, n)
+    if delta < 0
+      delta = -delta
+    exit u if delta < precision
+
+print("square root of 2", root(2, 2))
+print("root(2, 3)", root(2, 3))
+
+# closest pair
+def closest_pair(t)
+  # brute force algorithm
+  i0 = 0
+  i1 = 1
+  dmin = -1
+  closest = [-1, -1]
+  loop
+    dx = points[i0].x - points[i1].x
+    dy = points[i0].y - points[i1].y
+    d = (dx * dx) + (dy * dy)
+    if dmin != -1
+      if d < dmin
+        dmin = d
+        closest[0] = i0
+        closest[1] = i1
+    if dmin == -1
+      dmin = d
+      closest[0] = i0
+      closest[1] = i1
+    i1 = i1 + 1
+    if i1 == nb_points
+      i0 = i0 + 1
+      i1 = i0 + 1
+      exit if i0 == nb_points - 1
+  exit [closest, dmin]
+
+point = [x=0, y=0]
+points = [[95, 67], [44, 84], [10, 36], [61, 7],
+          [64, 52], [7, 71], [33, 38], [54, 82],
+          [68, 91], [23, 63], [61, 37], [57, 80],
+          [12, 90], [84, 18], [60, 32], [60, 52],
+          [42, 22], [52, 20], [36, 92], [74, 0]]
+
+nb_points = 0
+loop points: pt
+  points[nb_points] = point(pt[0], pt[1])
+  nb_points = nb_points + 1
+
+result = closest_pair(points)
+closest = result[0]
+dmin = result[1]
+
+print("closest pair", points[closest[0]], points[closest[1]],
+      "distance", dmin, root(dmin, 2))
+
+# 99 bottles of beer
+s1 = "bottles of beer"
+s2 = "on the wall"
+s3 = "Take one down, pass it around"
+
+count = 99
+loop
+    exit if count == 0
+    print(count, s1, s2)
+    print(count, s1)
+    print(s3)
+    count = count - 1
+    if count == 1
+        s1 = "bottle of beer"
+    print(count, s1, s2)
+    print()
+
+</textarea>
+</td>
+<td valign="top">
+
+<textarea id="output" cols=60 rows=30 autocomplete="off"></textarea>
+
+</body>
+</html>

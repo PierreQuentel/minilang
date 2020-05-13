@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script type="text/javascript" src="builtins.js"></script>
+<script type="text/javascript" src="ml2js.js"></script>
+<link rel="stylesheet" href="minilang.css">
+</head>
+
+<body>
+<button id="run">run</button>
+<br>
+<table width="100%">
+<tr>
+<td valign="top">
+<textarea id="editor" rows="30" cols="60" autocomplete="off">
+x = [1, a=2, "b-c"=4]
+print(x[0], x["a"], x.a, x["b-c"])
+
+a = x()
+print(a[0], a["a"], a.a, a["b-c"])
+
+a = x(33, 34, 35)
+print(a[0], a["a"], a.a, a["b-c"])
+
+loop[:10]:i
+  print(i)
+</textarea>
+</td>
+<td valign="top">
+
+<textarea id="output" cols=60 rows=30 autocomplete="off"></textarea>
+
+</body>
+</html>

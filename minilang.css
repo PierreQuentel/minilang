@@ -1,0 +1,24 @@
+textarea{
+    background-color: #000;
+    color: #fff;
+    font-family: consolas, "courier new";
+}
+
+#output{
+    background-color: #ccc;
+    color: #000;
+    padding: 5px;
+}
+
+.output-text{
+    font-family: arial;
+}
+
+div.editor{
+    font-family: consolas, courier;
+    white-space: pre;
+    font-size: 12px;
+    color: white;
+    background-color: #555;
+    padding: 0.5em;
+}

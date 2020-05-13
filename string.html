@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script type="text/javascript" src="builtins.js"></script>
+<script type="text/javascript" src="ml2js.js"></script>
+<link rel="stylesheet" href="minilang.css">
+
+<script src="string.js"></script>
+</head>
+
+<body>
+<button id="run">run</button>
+<br>
+<table width="100%">
+<tr>
+<td valign="top">
+<div id="editor" class="editor" width="300" height="500" contenteditable autocomplete="off">
+import string
+
+# with simple quotes
+s1 = 'string'
+print(string.len(s1))
+
+# or double quotes
+s2 = "string"
+
+# on several lines
+s3 = "And say, people, they don't understand
+Your girlfriends, they can't understand
+Your grandsons, they won't understand
+On top of this, I ain't ever gonna understand"
+
+# s[i] = get character at a position i (starts at 0)
+s2[0] # 'a'
+s2[10] # raises an error
+
+print(s2[0] == 'a')
+# s[i:j] = get substring from position i (included) to j (not included)
+s2[1:3] # 'tr'
+s2[:3] # 'str' (missing first position = 0)
+s2[3:] # 'ing' (missing last position = end of string)
+
+s2[10:20] # '' (substring does not raise errors)
+
+# position can be negative
+s2[-1] # last character, 'g'
+
+# concatenation with +
+s = 'S' + s2[1:] # 'String'
+
+# test if empty string
+if s
+    print('not empty')
+
+s = ''
+empty = "true"
+if s
+    empty = "false"
+print("empty", empty)
+
+# characters cannot be changed
+s2[0] = 'S' # raises an error
+</div>
+</td>
+<td valign="top">
+
+<textarea id="output" cols=60 rows=30 autocomplete="off"></textarea>
+
+</body>
+</html>

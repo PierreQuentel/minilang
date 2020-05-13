@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script type="text/javascript" src="builtins.js"></script>
+<script type="text/javascript" src="ml2js.js"></script>
+<link rel="stylesheet" href="minilang.css">
+</head>
+
+<body>
+<button id="run">run</button>
+<br>
+<table width="100%">
+<tr>
+<td valign="top">
+<textarea id="editor" rows="30" cols="60" autocomplete="off">
+t = ['a', 'b']
+
+loop t:x
+  print('ok')
+  exit
+</textarea>
+</td>
+<td valign="top">
+<svg id="output" width=600 height=500 ></svg>
+
+</body>
+</html>
