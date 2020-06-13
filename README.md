@@ -46,76 +46,59 @@ s2[0] = 'S' # raises an error
 s = 'S' + s2[1:] # 'String'
 ```
 
-lists
------
-# definition with comma-separated values
+## tables
+
+```python
+# definition with comma-separated values inside square brackets []
+# values can be simple items
 t = ["a", 1, 3.14]
+
+# or key-value pairs
+d = [x=0, "min-height"=100] # quotes for keys that are not valid identifiers
+
+# simple items are accessed with their index, like strings
+t[2] # 3.14
+t[-2] # 1
+
+# key-value pairs are accessed by the key, either with the dotted notation
+t.x # 0
+# or with [], preferably only for keys than can't be used as attribute
+t["min-height"] # 0
 
 # definition as a range of integers
 r = [2:5] # same as [2, 3, 4] (last number is not included)
 r = [:5] # missing start = 0
 
-# same access to elements and slices as for strings
-t[2] # 3.14
-t[-2] # 1
-t[:] # copy the whole list
+t[:] # copy the whole table
 
 # an existing element can be reset
 t[0] = "b" # t is ["b", 1, 3.14]
 
+d.x = 1 # d is [x=1, "min-height"=100]
+
+d["min-height"] = 200 # d is [x=1, "min-height"=200]
+
 # a sublist can be replaced by another list
-t[1:2] = ["c"] # remove t[1:2] and put ["c"] instead = ["b", "c", 3.14]
+t[1:2] = ["c"] # remove t[1:2] and put ["c"] instead = ["b", "c", 3.14, x=0]
 
 # if the replacement is empty, this removes elements
 t[:1] = [] # remove the first element = ["c", 3.14]
 t[:] = [] # clears the list
 
-# add an element at the end of the list
+# add an element to the items
 t <= "d" # think of <= as "left arrow", not "less or equal"
 
 # concatenate two lists
 t = ["a", "b"] + [:2] # ["a", "b", 0, 1]
 
-structures
-----------
-An object with attributes associated to values
+# creating objects from a table
+# define a table "Position"
+Position = [x=0, y=0]
 
-Position
-    x = 0
-    y = 0
-
-The structure `Position` has the attributes `x` and `y`.
-
-To get the value of an attribute, or set a value, use the dotted notation
-
-Position.x # 0
-Position.y = 1
-
-Arbitrary attributes can be added dynamically to the structure:
-
-Position.z = 0
-
-A structure can be used to generate instances as if it was a function:
-
-pos = Position(3, 5)
-
-The attributes `x` and `y` of the object are the arguments passed to the
-structure. If there are less arguments than attributes, the structure
-attributes are taken as default values.
-
-Functions can be defined inside a structure
-
-Rectangle
-  width = 0
-  height = 0
-  def surface(self)
-    exit self.width * self.height
-
-The instances of this structure have a method of the same name;
-when called, the first argument of the function is the object
-
-rect = Rectangle(3, 4)
-rect.surface() # calls Rectangle.surface(rect)
+# create another table with the same keys but different values
+pos = Position(2, 5)
+pos.x # 2
+```
 
 Printing values
 ===============
