@@ -1,6 +1,8 @@
-# Data types
+Data types
+==========
 
-## numbers
+numbers
+-------
 
 ```python
 # integer
@@ -10,7 +12,8 @@ x = 1
 y = 3.14
 ```
 
-## strings
+strings
+-------
 
 ```python
 # with simple quotes
@@ -46,7 +49,8 @@ s2[0] = 'S' # raises an error
 s = 'S' + s2[1:] # 'String'
 ```
 
-## tables
+tables
+------
 
 ```python
 # definition with comma-separated values inside square brackets []
@@ -102,8 +106,9 @@ pos.x # 2
 
 Printing values
 ===============
+```
 print([x[, y...]])
-
+```
 prints the variables passed as arguments, separated by a whitespace and ending
 with a newline
 
@@ -124,10 +129,11 @@ value from a function.
 
 condition
 ---------
+```
 s = 4
 if s > 3
     print(s, "is greater than 3")
-
+```
 The code block executed if the condition after `if` is true is determined by
 its indentation.
 
@@ -137,36 +143,39 @@ string, the empty list, or the number 0. Otherwise it is consired true.
 loop
 ----
 Without any argument, `loop` executes its code block until it finds `exit`
-
+```
 x = 0
 loop
     print(x)
     x = x + 1
     if x > 5
         exit
-
+```
 `exit` can be combined with `if`
-
+```
 x = 0
 loop
     print(x)
     x = x + 1
     exit if x > 5
-
+```
 An argument can be specified after loop. If it is a string or a list, the loop
 is executed as many times as there are characters in the string or items in
 the list. If it is a number, it is executed this number of times.
 
+```
 # get string length
 s = 'abcdefg'
 len = 0
 loop s
     len = len + 1
 print("length of", s, len)
+```
 
 If we want to use the characters inside the loop, we can define the name of the
 variable that will hold them during iteration
 
+```
 # count the number of 'a'
 s = 'abracadabra'
 nb = 0
@@ -174,9 +183,11 @@ loop s:car
     if car == 'a'
         nb = nb + 1
 print(nb, "times 'a' in", s)
+```
 
 `exit` can be used in this kind of loop
 
+```
 # search if a character is inside a string
 s = 'abracadadra'
 
@@ -185,37 +196,39 @@ loop s:car
     if car == searched
         print(s, "has character", searched)
         exit # no use reading next items
+```
 
 This syntax can be also used if the argument of `loop` is a number
 
+```
 loop 10:i
     print(i)
-
+```
 
 functions
 ---------
 Functions are defined with the keyword `def` followed by a list of parameters.
 When the function is called, its code block is executed.
-
+```
 def f(x)
     print(x)
-
+```
 To define a return value, use `exit` followed by the value to return:
-
+```
 def double(x)
     exit x * 2
-
+```
 Reusing the code in the `loop` section, we can define a function that returns
 the length of a list of string:
-
+```
 def len(x)
     result = 0
     loop x
         result = result + 1
     exit result
-
+```
 or a function that tests if a character is inside a string
-
+```
 def has(string, char)
     result = "false"
     loop string:c
@@ -225,6 +238,7 @@ def has(string, char)
     exit result
 
 has("abracadabra", "a") # "true"
+```
 
 exit
 ----
@@ -233,11 +247,12 @@ function: in this case, `exit` both exits the loop and returns the function
 value
 
 The code above can be more concise
-
+```
 def has(string, char)
     loop string:c
         exit "true" if c == char
     exit "false"
+```
 
 If `exit` is in a function body but not in a loop, it must be followed by an
 expression.
