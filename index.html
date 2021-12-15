@@ -16,30 +16,27 @@
 <textarea id="editor" rows="30" cols="60" autocomplete="off">
 x = 2
 
-if x > 1
-  print(x, "> 1")
+x > 1 ?
+  (x, "> 1") >>
 
-print(x, "ok")
+(x, "ok") >>
 
-def f(y, z)
-    exit y + z
+f(y, z) =
+    y + z
 
-print(f(1, 2))
+f(1, 2) >>
 
 t = []
 
 a = 3
 loop
-    print(a)
+    a >>
     a = a - 1
-    if a == 0
+    a == 0 ?
         exit
 
 t = ['a', 'z']
-print(t, "len", t["len"])
-print(t[1])
-t[t["len"]] = 'A'
-print(t)
+t >>
 </textarea>
 </td>
 <td valign="top">

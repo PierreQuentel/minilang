@@ -167,16 +167,6 @@ var $_SyntaxError = function (context, msg, indent){
     }
 }
 
-/*
-Class for Python abstract syntax tree
-=====================================
-
-An instance is created for the whole Python program as the root of the tree.
-
-For each instruction in the Python source code, an instance is created
-as a child of the block where it stands : the root for instructions at
-module level, or a function definition, a loop, a condition, etc.
-*/
 
 /*
 Function that checks that a context is not inside another incompatible
@@ -399,6 +389,7 @@ var AbstractExprCtx = function(context, with_commas){
                 return new AbstractExprCtx(new ObjectItemCtx(
                     new ObjectCtx(context), true))
             case 'loop':
+            case '@':
                 return new AbstractExprCtx(new LoopCtx(context), false)
             case 'op':
                 var tg = value
@@ -490,7 +481,14 @@ var AssignCtx = function(context, expression){
 
     var scope = $get_scope(this)
     if(context.type == 'expr' && context.tree[0].type == 'call'){
-          $_SyntaxError(context, ["can't assign to function call "])
+        if(context.parent.type == 'node'){
+            // function definition
+            if(context.tree[0].func.type !== 'id'){
+                $_SyntaxError(context, ['expected function name'])
+            }
+        }else{
+            $_SyntaxError(context, ["can't assign to function call "])
+        }
     }else{
         var assigned = context.tree[0]
         if(assigned && assigned.type == 'id'){
@@ -521,6 +519,12 @@ var AssignCtx = function(context, expression){
         var context = this
         if(token == 'eol'){
             if(context.tree[1].type == 'abstract_expr'){
+                if(context.tree[0].type == 'expr' &&
+                        context.tree[0].tree[0].type == 'call'){
+                    var defctx = new DefCtx(context.tree[0].tree[0]),
+                        defnode = $transition(defctx, token)
+                    return defnode
+                }
                 $_SyntaxError(context, 'token ' + token + ' after ' +
                     context)
             }
@@ -846,22 +850,29 @@ var ConditionCtx = function(context,token){
 
 var DefCtx = function(context){
     this.type = 'def'
-    this.name = null
-    this.parent = context
-    this.tree = []
-    this.async = context.async
+    this.name = context.func.value
+    this.parent = context.parent.parent
+    this.parent.tree = [this]
+    this.parent.node.binding = {}
+
+    this.args = []
+    for(var arg of context.tree){
+        var param = arg.tree[0].tree[0].value
+        this.args.push(param)
+        this.parent.node.binding[param] = true
+        this.parent
+    }
 
     this.locals = []
-    context.tree[context.tree.length] = this
 
     // store id of enclosing functions
     this.enclosing = []
-    var scope = this.scope = $get_scope(this)
-    if(scope.context && scope.context.tree[0].type == "class"){
-        this.class_name = scope.context.tree[0].name
-    }
+    var node = context.parent,
+        scope = this.scope = $get_scope(this)
     // initialize object for names bound in the function
-    context.node.binding = {}
+    node.binding = {}
+
+    $bind(this.name, scope, this)
 
     var parent_block = scope
     this.parent.node.parent_block = parent_block
@@ -873,233 +884,172 @@ var DefCtx = function(context){
     this.num = $loop_num
     $loop_num++
 
-    // Arrays for arguments
-    this.positional_list = []
-    this.default_list = []
-    this.other_args = null
-    this.other_kw = null
-    this.after_star = []
-
-    this.transition = function(token, value){
-        var context = this
-        switch(token){
-            case 'id':
-                if(context.assigned) {
-                    $_SyntaxError(context, 'function name already set')
-                }
-                context.set_name(value)
-                return context
-            case '(':
-                if(! context.assigned && context.name == null){
-                    $_SyntaxError(context, 'token ' + token +
-                        ' after ' + context)
-                }
-                context.has_args = true;
-                return new FuncArgsCtx(context)
-            case 'eol':
-                //if(context.has_args){
-                    return context.parent
-                //}else{
-                //    $_SyntaxError(context, "no () after def")
-                //}
-        }
-        $_SyntaxError(context, 'unexpected token ' + token)
-    }
-
-    this.set_name = function(name){
-        if(name.type && name.type == "expr"){
-            if(name.tree[0].type == "id"){
-                name = name.tree[0].value
-            }else{
-                this.assign_expr = name
-                if(name.tree[0].type == "sub"){
-                    name.tree[0].func = "setitem"
-                    this.key = name.tree[0].tree[0].tree[0].to_js()
-                }
-                name = "$func" + $loop_num
-                $loop_num++
-            }
-        }
-        this.name = name
-        this.id = this.scope.id + '_' + name
-        this.id = this.id.replace(/\./g, '_') // for modules inside packages
-        this.parent.node.id = this.id
-        this.parent.node.module = this.module
-
-        this.binding = {}
-
-        $bind(this.name, this.scope, this)
-
-        // If function is defined inside another function, add the name
-        // to local names
-        //id_ctx.bound = true
-        if(scope.is_function){
-            if(scope.context.tree[0].locals.indexOf(name) == -1){
-                scope.context.tree[0].locals.push(name)
-            }
-        }
-    }
-
-    this.toString = function(){
-        return 'def ' + this.name + '(' + this.tree + ')'
-    }
-
-    this.transform = function(node, rank){
-        // already transformed ?
-        if(this.transformed !== undefined){return}
-
-        var scope = this.scope
-
-        // search doc string
-        this.doc_string = $get_docstring(node)
-        this.rank = rank
-
-        // block indentation
-        var indent = node.indent + 12
-
-        var pnode = this.parent.node
-        while(pnode.parent && pnode.parent.is_def_func){
-            this.enclosing.push(pnode.parent.parent)
-            pnode = pnode.parent.parent
-        }
-
-        this.varnames = {}
-        this.args = []
-        this.slots = []
-
-        if(this.has_args){
-            this.func_name = this.tree[0].to_js()
-
-            var func_args = this.tree[0].tree
-
-            var slot_init = []
-
-            func_args.forEach(function(arg){
-                this.args.push('$' + arg.name)
-                this.varnames[arg.name] = true
-                slot_init.push(arg.name + ': $' + arg.name)
-            }, this)
-
-            slot_init = '{' + slot_init.join(", ") + '}'
-        }else{
-            var slot_init = "{}"
-        }
-
-        var nodes = [], js
-
-        // Get id of global scope
-        var global_scope = scope
-        while(global_scope.parent_block &&
-                global_scope.parent_block.id !== '__builtins__'){
-            global_scope = global_scope.parent_block
-        }
-        var global_ns = 'locals_' + global_scope.id.replace(/\./g, '_')
-
-        var name = this.name
-
-        // Add lines of code to node children
-
-        // Push id in frames stack
-        var enter_frame_nodes = [
-            NodeJS('$M.frames_stack.push(locals);'),
-        ]
-
-        enter_frame_nodes.forEach(function(node){
-            node.enter_frame = true
-        })
-
-        var js = 'var locals = locals_' + this.id + ' = ' + slot_init
-        nodes.push(NodeJS(js))
-
-        nodes = nodes.concat(enter_frame_nodes)
-
-        // remove children of original node
-        for(var i = nodes.length - 1; i >= 0; i--){
-            node.children.splice(0, 0, nodes[i])
-        }
-
-        // Node that replaces the original "def" line
-        var def_func_node = new $Node()
-        new NodeJSCtx(def_func_node, '')
-        def_func_node.is_def_func = true
-        def_func_node.module = this.module
-
-        // If the last instruction in the function is not exit,
-        // add an explicit line "return None".
-        var last_instr = node.children[node.children.length - 1].context.tree[0]
-        if(last_instr.type != 'exit'){
-            // as always, leave frame before returning
-            var js = '$M.leave_frame'
-            if(this.has_args){
-                node.add(NodeJS(js + '();return _b_.$None'))
-            }else{
-                node.add(NodeJS(js + '();return locals'))
-            }
-        }
-
-        // Add the new function definition
-        node.add(def_func_node)
-
-        var offset = 1,
-            indent = node.indent
-
-        // wrap everything in a try/catch to be sure to exit from frame
-        var parent = node
-        for(var pos = 0; pos < parent.children.length &&
-            parent.children[pos] !== $M.last(enter_frame_nodes); pos++){}
-        var try_node = NodeJS('try'),
-            children = parent.children.slice(pos + 1)
-        parent.insert(pos + 1, try_node)
-        children.forEach(function(child){
-            if(child.is_def_func){
-                child.children.forEach(function(grand_child){
-                    try_node.add(grand_child)
-                })
-            }else{
-                try_node.add(child)
-            }
-        })
-        parent.children.splice(pos + 2, parent.children.length)
-
-        var except_node = NodeJS('catch(err)')
-        if(this.async){
-            except_node.add(NodeJS('err.$stack = $stack'))
-        }
-        except_node.add(NodeJS('err.frames = err.frames || $M.frames_stack.slice()'))
-        except_node.add(NodeJS('$M.leave_frame();throw err'))
-
-        parent.add(except_node)
-
-        if(this.assigned &&
-                ["attribute", "sub"].indexOf(this.assign_expr.tree[0].type) > -1){
-            node.parent.insert(rank + 1, NodeJS(")"))
-        }
-
-        this.transformed = true
-
-        if(! this.has_args){
-            // execute function to return locals
-            node.parent.insert(rank + 1, NodeJS(")()"))
-            rank++
-            node.parent.insert(rank + 1,
-                NodeJS(`locals.${this.name} = $M.struct(locals.${this.name})`))
-            rank++
-        }
-        // add node for function name
-        node.parent.insert(rank + 1, NodeJS("locals." + this.name +
-            '.$name = "' + name + '"'))
-        return offset
-    }
-
-
-    this.to_js = function(func_name){
-        if(this.has_args){
-            return `locals.${this.name} = function(${this.args.join(', ')})`
-        }else{
-            return `locals.${this.name} = (function(${this.args.join(', ')})`
-        }
-    }
 }
+
+DefCtx.prototype.transition = function(token, value){
+    var context = this
+    switch(token){
+        case 'eol':
+            return context.parent
+    }
+    $_SyntaxError(context, 'unexpected token ' + token)
+}
+
+DefCtx.prototype.to_js = function(){
+    return `locals.${this.name} = function(${this.args})`
+}
+
+DefCtx.prototype.transform = function(node, rank){
+    // already transformed ?
+    if(this.transformed !== undefined){return}
+
+    var scope = this.scope
+
+    // search doc string
+    this.rank = rank
+
+    // block indentation
+    var indent = node.indent + 12
+
+    var pnode = this.parent.node
+    while(pnode.parent && pnode.parent.is_def_func){
+        this.enclosing.push(pnode.parent.parent)
+        pnode = pnode.parent.parent
+    }
+
+    node.children.splice(0, 0, NodeJS('$M.frames_stack.push(locals)'))
+    node.children.splice(0, 0, NodeJS(`locals = {${this.args}}`))
+    node.add(NodeJS('return locals.$return'))
+    return 1
+
+    this.varnames = {}
+    this.args = []
+    this.slots = []
+
+    if(this.has_args){
+        this.func_name = this.tree[0].to_js()
+
+        var func_args = this.tree[0].tree
+
+        var slot_init = []
+
+        func_args.forEach(function(arg){
+            this.args.push('$' + arg.name)
+            this.varnames[arg.name] = true
+            slot_init.push(arg.name + ': $' + arg.name)
+        }, this)
+
+        slot_init = '{' + slot_init.join(", ") + '}'
+    }else{
+        var slot_init = "{}"
+    }
+
+    var nodes = [], js
+
+    // Get id of global scope
+    var global_scope = scope
+    while(global_scope.parent_block &&
+            global_scope.parent_block.id !== '__builtins__'){
+        global_scope = global_scope.parent_block
+    }
+    var global_ns = 'locals_' + global_scope.id.replace(/\./g, '_')
+
+    var name = this.name
+
+    // Add lines of code to node children
+
+    // Push id in frames stack
+    var enter_frame_nodes = [
+        NodeJS('$M.frames_stack.push(locals);'),
+    ]
+
+    enter_frame_nodes.forEach(function(node){
+        node.enter_frame = true
+    })
+
+    var js = 'var locals = locals_' + this.id + ' = ' + slot_init
+    nodes.push(NodeJS(js))
+
+    nodes = nodes.concat(enter_frame_nodes)
+
+    // remove children of original node
+    for(var i = nodes.length - 1; i >= 0; i--){
+        node.children.splice(0, 0, nodes[i])
+    }
+
+    // Node that replaces the original "def" line
+    var def_func_node = new $Node()
+    new NodeJSCtx(def_func_node, '')
+    def_func_node.is_def_func = true
+    def_func_node.module = this.module
+
+    // If the last instruction in the function is not exit,
+    // add an explicit line "return None".
+    var last_instr = node.children[node.children.length - 1].context.tree[0]
+    if(last_instr.type != 'exit'){
+        // as always, leave frame before returning
+        var js = '$M.leave_frame'
+        if(this.has_args){
+            node.add(NodeJS(js + '();return _b_.$None'))
+        }else{
+            node.add(NodeJS(js + '();return locals'))
+        }
+    }
+
+    // Add the new function definition
+    node.add(def_func_node)
+
+    var offset = 1,
+        indent = node.indent
+
+    // wrap everything in a try/catch to be sure to exit from frame
+    var parent = node
+    for(var pos = 0; pos < parent.children.length &&
+        parent.children[pos] !== $M.last(enter_frame_nodes); pos++){}
+    var try_node = NodeJS('try'),
+        children = parent.children.slice(pos + 1)
+    parent.insert(pos + 1, try_node)
+    children.forEach(function(child){
+        if(child.is_def_func){
+            child.children.forEach(function(grand_child){
+                try_node.add(grand_child)
+            })
+        }else{
+            try_node.add(child)
+        }
+    })
+    parent.children.splice(pos + 2, parent.children.length)
+
+    var except_node = NodeJS('catch(err)')
+    if(this.async){
+        except_node.add(NodeJS('err.$stack = $stack'))
+    }
+    except_node.add(NodeJS('err.frames = err.frames || $M.frames_stack.slice()'))
+    except_node.add(NodeJS('$M.leave_frame();throw err'))
+
+    parent.add(except_node)
+
+    if(this.assigned &&
+            ["attribute", "sub"].indexOf(this.assign_expr.tree[0].type) > -1){
+        node.parent.insert(rank + 1, NodeJS(")"))
+    }
+
+    this.transformed = true
+
+    if(! this.has_args){
+        // execute function to return locals
+        node.parent.insert(rank + 1, NodeJS(")()"))
+        rank++
+        node.parent.insert(rank + 1,
+            NodeJS(`locals.${this.name} = $M.struct(locals.${this.name})`))
+        rank++
+    }
+    // add node for function name
+    node.parent.insert(rank + 1, NodeJS("locals." + this.name +
+        '.$name = "' + name + '"'))
+    return offset
+}
+
 
 var ExitCtx = function(context){
     // Class for keyword "exit"
@@ -1250,6 +1200,17 @@ var ExprCtx = function(context, name, with_commas){
               return new AbstractExprCtx(new SubCtx(context), true)
           case '(':
               return new CallCtx(context)
+          case '?':
+              // go to upper expression
+              var expr = context,
+                  ctx = context.parent
+              while(ctx){
+                  if(ctx.type == 'expr'){
+                      expr = ctx
+                  }
+                  ctx = ctx.parent
+              }
+              return new IfCtx(expr)
           case 'op':
               // handle operator precedence ; fasten seat belt ;-)
               var op_parent = context.parent,
@@ -1431,14 +1392,6 @@ var ExprCtx = function(context, name, with_commas){
                  return new AbstractExprCtx(new AssignCtx(context), true)
               }
               break
-          case 'eol':
-              if(["dict_or_set", "list_or_tuple"].indexOf(context.parent.type) == -1){
-                  var t = context.tree[0]
-                  if(t.type == "packed" ||
-                          (t.type == "call" && t.func.type == "packed")){
-                      $_SyntaxError(context, ["can't use starred expression here"])
-                  }
-              }
         }
         return $transition(context.parent,token)
     }
@@ -1453,8 +1406,8 @@ var ExprCtx = function(context, name, with_commas){
         if(this.type == 'list'){res = '[' + $to_js(this.tree) + ']'}
         else if(this.tree.length == 1){res = this.tree[0].to_js(arg)}
         else{res = '_b_.tuple.$factory([' + $to_js(this.tree) + '])'}
-        if(this.is_await){
-            res = "await $M.promise(" + res + ")"
+        if(this.parent.type == 'node'){
+            return 'locals.$return = ' + res
         }
         return res
     }
@@ -1835,6 +1788,27 @@ var IdCtx = function(context, value){
     }
 }
 
+function IfCtx(context){
+    this.type = 'if'
+    this.parent = context.parent
+    var expr = context.parent.tree.pop()
+    context.parent.tree.push(this)
+    this.tree = [expr]
+    expr.parent = this
+}
+
+IfCtx.prototype.transition = function(token, value){
+    var context = this
+    if(token == 'eol'){
+        return this.parent
+    }
+    $_SyntaxError(context, 'if expects eol')
+}
+
+IfCtx.prototype.to_js = function(){
+    return `if(${this.tree[0].to_js()})`
+}
+
 function ImportCtx(context){
     // Class for keyword "import"
     this.type = 'import'
@@ -2069,7 +2043,7 @@ var ListOrTupleCtx = function(context,real){
                 if(this.tree.length == 1 && this.has_comma === undefined){
                     return this.tree[0].to_js()
                 }
-                return '[' + $to_js(this.tree) + ']'
+                return $to_js(this.tree)
         }
     }
 }
@@ -2196,6 +2170,7 @@ var NodeCtx = function(node){
                 return new AbstractExprCtx(
                     new ConditionCtx(context, token), false)
             case 'loop':
+            case '@':
                 return new AbstractExprCtx(new LoopCtx(context), false)
             case 'exit':
                 return new AbstractExprCtx(new ExitCtx(context),true)
@@ -2412,6 +2387,10 @@ var OpCtx = function(context,op){
             default:
                 if(context.tree[context.tree.length - 1].type ==
                         'abstract_expr'){
+                    if(context.op == '>>' && context.parent.parent.type == 'node'){
+                        console.log('return outputctx')
+                        return new OutputCtx(context)
+                    }
                     $_SyntaxError(context, 'token ' + token + ' after ' +
                         context)
                 }
@@ -2472,6 +2451,19 @@ var OpCtx = function(context,op){
                 console.log("unhandled", this.op)
         }
     }
+}
+
+var OutputCtx = function(context){
+    this.type = 'output'
+    this.tree = [context.tree[0]]
+    this.tree[0].parent = this
+    this.parent = context.parent.parent
+    this.parent.tree = [this]
+}
+
+OutputCtx.prototype.to_js = function(){
+    console.log($M.search('print'))
+    return `locals.$return = $M.display(${this.tree[0].to_js()})`
 }
 
 var RawJSCtx = function(context, js){
@@ -3032,7 +3024,7 @@ var $to_js = function(tree,sep){
 // Python source code
 
 var $transition = function(context, token, value){
-    //console.log("context", context, "token", token, value)
+    // console.log("context", context, "token", token, value)
     return context.transition(token, value)
 }
 
@@ -3111,7 +3103,6 @@ var $tokenize = function(root, src) {
                 if(context !== null){
                     if($indented.indexOf(context.tree[0].type) == -1){
                         $pos = pos
-                        console.log("indentation", current)
                         if(current.context.tree.length == 1){
                             var expr = current.context.tree[0]
                             if(expr.type == "expr" &&
@@ -3480,6 +3471,15 @@ var $tokenize = function(root, src) {
                 }
             case String.fromCharCode(12): // Form Feed : ignore
                 pos += 1
+                break
+            case '?':
+                // if (previous expression)
+                context = $transition(context, '?')
+                pos++
+                break
+            case '@':
+                context = $transition(context, '@')
+                pos++
                 break
             default:
                 $pos = pos

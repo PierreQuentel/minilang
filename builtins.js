@@ -354,15 +354,15 @@ $M.repr = function(obj){
     }else if(is_number(obj)){
         return obj.toString()
     }else if(typeof obj == "string"){
-        return obj.replace(/ /g, '\xa0')
+        return "'" +
+            obj.replace(/ /g, '\xa0').replace("'", "\\'") +
+            "'"
     }else if(obj instanceof Array){
         var items = []
         for(const item of obj){
             items.push($M.str(item))
         }
         return '[' + items.join(', ') + ']'
-    }else if(typeof obj == "function"){
-        return 'function ' + obj.$name
     }else if(obj.$is_struct_type || obj.$is_struct_instance){
         var elts = []
         for(const item of obj.$items){
@@ -374,6 +374,8 @@ $M.repr = function(obj){
         res = obj.$is_struct_type ? '<table> ' : '<instance> '
         res += `[${elts.join(', ')}]`
         return res
+    }else if(typeof obj == "function"){
+        return 'function ' + obj.$name
     }else{
         return '<unprintable>'
     }
@@ -381,18 +383,11 @@ $M.repr = function(obj){
 
 $M.str = function(obj){
     if(typeof obj == "string"){
-        if(obj.search("'") == -1){
-            return "'" + obj + "'"
-        }else if(obj.search('"') == -1){
-            return '"' + obj + '"'
-        }else{
-            return "'" + obj.replace(new RegExp("'", "g"), "\\'") + "'"
-        }
+        return obj
     }else{
         return $M.repr(obj)
     }
 }
-
 
 var height = 18,
     pos = [0, height],
@@ -401,7 +396,7 @@ var height = 18,
 $M.display = function(){
     var args = []
     for(var i = 0, len = arguments.length; i < len; i++){
-        args.push($M.repr(arguments[i]))
+        args.push($M.str(arguments[i]))
     }
     var text = args.join(" ")
     var output = document.getElementById("output")
@@ -420,10 +415,12 @@ $M.display = function(){
 
 $M.reset_output = function(){
     var output = document.getElementById("output")
-    if(output.nodeName.toUpperCase == "SVG"){
-        while(output.childNodes.length){
-            output.firstChild.remove()
+    console.log('reset output', output)
+    if(output.nodeName.toUpperCase() == "SVG"){
+        while(output.firstChild){
+            output.removeChild(output.firstChild)
         }
+        console.log('cleared !')
         pos[0] = 0
         pos[1] = height
     }else if(output.nodeName == "TEXTAREA"){
