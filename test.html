@@ -14,22 +14,68 @@
 <tr>
 <td valign="top">
 <textarea id="editor" rows="30" cols="60" autocomplete="off">
-x = [1, a=2, "b-c"=4]
-print(x[0], x["a"], x.a, x["b-c"])
+fibo(n)=
+    exit 1 if n == 0
+    exit 1 if n == 1
+    exit fibo(n - 2) + fibo(n - 1)
 
-a = x()
-print(a[0], a["a"], a.a, a["b-c"])
-
-a = x(33, 34, 35)
-print(a[0], a["a"], a.a, a["b-c"])
-
-loop[:10]:i
-  print(i)
+print(fibo(10))
 </textarea>
 </td>
 <td valign="top">
 
 <textarea id="output" cols=60 rows=30 autocomplete="off"></textarea>
 
+<!-- script>
+var $M = __MINILANG__,
+    _b_ = __MINILANG__.builtins,
+    locals = locals_script = {}
+$M.frames_stack.push(locals);
+try{
+    locals.$line_info = "1,script";
+    locals.fibo = function(n){
+        console.log('n', n)
+        if(n == -1){
+          var err = new Error()
+          console.log(err.stack)
+          alert()
+        }
+        alert()
+        locals_fibo = {n}
+        $M.frames_stack.push(locals_fibo)
+        locals_fibo.$line_info = "2,script";
+        if($M.compare.eq(locals_fibo.n, 0)){
+            locals_fibo.$line_info = "3,script";
+            var res = 1;$M.leave_frame();return res;
+        }
+        locals_fibo.$line_info = "4,script";
+        if($M.compare.eq(locals_fibo.n, 1)){
+            locals_fibo.$line_info = "5,script";
+            var res = 1;$M.leave_frame();return res;
+        }
+        locals_fibo.$line_info = "6,script";
+        console.log('call on n-2', $M.operations.sub(locals_fibo.n, 2), 'n - 1',
+          $M.operations.sub(locals_fibo.n, 1))
+        var n2 = $M.operations.sub(locals_fibo.n, 2),
+            n1 = $M.operations.sub(locals_fibo.n, 1)
+        console.log('n2', n2, 'n1', n1)
+        var res = $M.operations.add(locals_script.fibo($M.operations.sub(locals_fibo.n, 2)),
+            locals_script.fibo($M.operations.sub(locals_fibo.n, 1)));$M.leave_frame();return res;
+        return locals.$return
+    }
+    locals.$line_info = "8,script";
+    locals.$return = $M.display("fibo(10)",locals.fibo(10));
+    $M.leave_frame()
+}
+catch(err){
+    err.frames = err.frames || $M.frames_stack.slice()
+    $M.leave_frame()
+    throw err
+}
+</script-->
+
+<script>
+
+</script>
 </body>
 </html>

@@ -107,7 +107,7 @@ pos.x # 2
 Printing values
 ===============
 ```
-print([x[, y...]])
+([x[, y...]]) >>
 ```
 prints the variables passed as arguments, separated by a whitespace and ending
 with a newline
@@ -116,14 +116,14 @@ Programs
 ========
 Programs are about conditions, loops and functions.
 
-We use only 3 keywords, one for each of these features : `if` for conditions,
-`loop` for loops, `def` for functions.
+We use only 3 signs, one for each of these features : `?` for conditions,
+`@` for loops, `=` for functions.
 
-Each of these keywords have an associated "code block", the instructions that
+Each of these signs have an associated "code block", the instructions that
 are executed if the condition is true / inside the loop / when the function is
 called.
 
-Additionaly, a 4th keyword `exit` is used to exit from a loop or return a
+Additionaly, a 4th sign `!` is used to exit from a loop or return a
 value from a function.
 
 
@@ -131,10 +131,11 @@ condition
 ---------
 ```
 s = 4
-if s > 3
-    print(s, "is greater than 3")
+s > 3 ?
+  (s, "is greater than 3") >>
 ```
-The code block executed if the condition after `if` is true is determined by
+
+The code block executed if the condition before `?` is true is determined by
 its indentation.
 
 If the condition is a variable, it is considered false if it is the empty
@@ -142,24 +143,17 @@ string, the empty list, or the number 0. Otherwise it is consired true.
 
 loop
 ----
-Without any argument, `loop` executes its code block until it finds `exit`
+Without any argument, `@` executes its code block until it finds `!`
 ```
 x = 0
-loop
-    print(x)
-    x = x + 1
-    if x > 5
-        exit
+@
+  x >>
+  x = x + 1
+  x > 5 ?
+    !
 ```
-`exit` can be combined with `if`
-```
-x = 0
-loop
-    print(x)
-    x = x + 1
-    exit if x > 5
-```
-An argument can be specified after loop. If it is a string or a list, the loop
+
+An argument can be specified after `@`. If it is a string or a list, the loop
 is executed as many times as there are characters in the string or items in
 the list. If it is a number, it is executed this number of times.
 
@@ -167,9 +161,9 @@ the list. If it is a number, it is executed this number of times.
 # get string length
 s = 'abcdefg'
 len = 0
-loop s
+@ s
     len = len + 1
-print("length of", s, len)
+("length of", s, len) >>
 ```
 
 If we want to use the characters inside the loop, we can define the name of the
@@ -179,77 +173,75 @@ variable that will hold them during iteration
 # count the number of 'a'
 s = 'abracadabra'
 nb = 0
-loop s:car
-    if car == 'a'
-        nb = nb + 1
-print(nb, "times 'a' in", s)
+@ s:car
+  car == 'a' ?
+    nb = nb + 1
+(nb, "times 'a' in", s) >>
 ```
 
-`exit` can be used in this kind of loop
+`!` can be used in this kind of loop
 
 ```
 # search if a character is inside a string
 s = 'abracadadra'
 
 searched = 'd'
-loop s:car
-    if car == searched
-        print(s, "has character", searched)
-        exit # no use reading next items
+@ s:car
+  car == searched ?
+    (s, "has character", searched) >>
+    ! # no use reading next items
 ```
 
-This syntax can be also used if the argument of `loop` is a number
+This syntax can be also used if the argument of `@` is a number
 
 ```
-loop 10:i
-    print(i)
+@ 10:i
+    i >>
 ```
 
 functions
 ---------
-Functions are defined with the keyword `def` followed by a list of parameters.
+Functions are defined with the function name, a list of parameters and `=`.
 When the function is called, its code block is executed.
 ```
-def f(x)
-    print(x)
+f(x) =
+    x >>
 ```
-To define a return value, use `exit` followed by the value to return:
+To define a return value, use `!` followed by the value to return:
 ```
-def double(x)
-    exit x * 2
+double(x) =
+    ! x * 2
 ```
-Reusing the code in the `loop` section, we can define a function that returns
+Reusing the code in the `@` section, we can define a function that returns
 the length of a list of string:
 ```
-def len(x)
-    result = 0
-    loop x
-        result = result + 1
-    exit result
+len(x) =
+  result = 0
+  @ x
+    result = result + 1
+  ! result
 ```
 or a function that tests if a character is inside a string
 ```
-def has(string, char)
-    result = "false"
-    loop string:c
-        if c == char
-            result = "true"
-            exit
-    exit result
+has(string, char) =
+  @ string:c
+    c == char ?
+      ! "true"
+  ! "false"
 
 has("abracadabra", "a") # "true"
 ```
 
 exit
 ----
-Inside a loop, `exit` can be followed by an expression if the loop is inside a
-function: in this case, `exit` both exits the loop and returns the function
+Inside a loop, `!` can be followed by an expression if the loop is inside a
+function: in this case, `!` both exits the loop and returns the function
 value
 
 The code above can be more concise
 ```
-def has(string, char)
-    loop string:c
+has(string, char) =
+    @ string:c
         exit "true" if c == char
     exit "false"
 ```

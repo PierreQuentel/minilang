@@ -415,7 +415,6 @@ $M.display = function(){
 
 $M.reset_output = function(){
     var output = document.getElementById("output")
-    console.log('reset output', output)
     if(output.nodeName.toUpperCase() == "SVG"){
         while(output.firstChild){
             output.removeChild(output.firstChild)
