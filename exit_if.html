@@ -15,17 +15,11 @@
 <td valign="top">
 <textarea id="editor" rows="30" cols="60" autocomplete="off">
 t = 0
-loop
+@
   t = t + 1
-  exit if t > 10
-print(t)
-
-def fibo(n)
-  exit 1 if n == 0
-  exit 1 if n == 1
-  exit fibo(n - 2) + fibo(n - 1)
-
-print("fibo(10)", fibo(10))
+  t > 10 ?
+    !
+t >>
 
 </textarea>
 </td>

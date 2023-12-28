@@ -53,8 +53,10 @@ $M.get_class = function(obj){
                 return "table"
             }else if(obj instanceof Number){
                 return "float"
-            }else if(obj.$is_struct_type){
+            }else if(obj instanceof Table){
                 return "struct"
+            }else if(obj instanceof Slice){
+                return "slice"
             }else if(obj.$is_struct_instance){
                 return "struct_instance"
             }
@@ -68,7 +70,29 @@ function is_number(x){
 }
 
 $M.class_name = function(obj){
-    return $M.get_class(obj).__name__
+    return $M.get_class(obj)
+}
+
+$M.call = function(obj){
+    if(typeof obj == 'function'){
+        return obj
+    }else if(obj instanceof Table){
+        return function(){
+            var res = new Table()
+            res.items = obj.items.slice()
+            var i = 0
+            for(var key in obj.keywords){
+                var arg = arguments[i]
+                if(arg !== undefined){
+                    res.keywords[key] = arg
+                }else{
+                    res.keywords[key] = obj.keywords[key]
+                }
+            }
+            return res
+        }
+    }
+    throw $M.Error($M.get_class(obj) + ' is not callable')
 }
 
 $M.compare = {
@@ -175,8 +199,8 @@ $M.getattr = function(obj, key){
             }
         }
         throw $M.Error(`attribute error ${key}`)
-    }else if(obj.$is_struct_type){
-        var res = obj.$keywords[key]
+    }else if(obj instanceof Table){
+        var res = obj.keywords[key]
         if(res !== undefined){
             return res
         }
@@ -194,22 +218,22 @@ $M.getattr = function(obj, key){
 }
 
 $M.setattr = function(obj, key, value){
-    if(obj.$is_struct_type){
-        obj.$attrs[key] = value
+    if(obj instanceof Table){
+        obj.keywords[key] = value
     }else{
         obj[key] = value
     }
 }
 
 $M.getitem = function(obj, key){
-    if(obj.$is_struct_type){
+    if(obj instanceof Table){
         if(typeof key == "number"){
             if(key < 0){
-                key = key + obj.$items.length
+                key = key + obj.items.length
             }
-            var res = obj.$items[key]
+            var res = obj.items[key]
         }else if(typeof key == "string"){
-            var res = obj.$keywords[key]
+            var res = obj.keywords[key]
         }else if(key instanceof Array){
             // slice
             slice_to_index(key, obj.$items)
@@ -243,9 +267,14 @@ $M.getitem = function(obj, key){
     }else if(typeof obj == "string"){
         if(key == "len"){
             return obj.length
-        }else if($M.get_class(key) == "int" &&
-                obj.charAt(key) !== undefined){
-            return obj.charAt(key)
+        }else if($M.get_class(key) == "int"){
+            if(key < 0){
+                key += obj.length
+            }
+            if(obj[key] !== undefined){
+                return obj[key]
+            }
+            throw $M.Error("unknown key: " + key)
         }else if(key instanceof Array){
             slice_to_index(key, obj)
             return obj.substring(key[0], key[1])
@@ -254,22 +283,33 @@ $M.getitem = function(obj, key){
     }
 }
 
+$M.is_member = function(item, obj){
+    if(obj instanceof Table){
+        return (obj.items.includes(item) ||
+                obj.keywords.hasOwnProperty(item))
+    }else if(typeof obj == 'string'){
+        return obj.includes(item)
+    }
+    throw $M.Error('cant test membership of ' + $M.class_name(obj))
+}
+
 $M.setitem = function(obj, key, value){
-    if(obj.$is_struct_type || obj.$is_struct_instance){
+    if(obj instanceof Table || obj.$is_struct_instance){
         if(typeof key == "number"){
-            if(obj.$items[key] !== undefined){
-                obj.$items[key] = value
+            if(obj.items[key] !== undefined){
+                obj.items[key] = value
                 return
             }
             throw $M.Error("unknown key: " + key)
         }else if(typeof key == "string"){
-            obj.$keywords[key] = value
+            obj.keywords[key] = value
+            return
         }else if(key instanceof Array){
             // remove slice, replace it by value
-            slice_to_index(key, obj.$items)
-            obj.$items.splice(key[0], key[1] - key[0])
+            slice_to_index(key, obj.items)
+            obj.items.splice(key[0], key[1] - key[0])
             for(var i = value.length - 1; i >= 0; i--){
-                obj.$items.splice(key[0], 0, value[i])
+                obj.items.splice(key[0], 0, value[i])
             }
             return
         }else{
@@ -279,6 +319,24 @@ $M.setitem = function(obj, key, value){
     throw $M.Error("cannot set item to " + $M.get_class(obj))
 }
 
+$M.augm_assign = function(sign, left, right){
+    console.log('augm assign', sign, left, right)
+    if(sign == '+'){
+        if(left instanceof Table){
+            if(right instanceof Table){
+                for(item of right.items){
+                    left.items.push(item)
+                }
+                for(key in right.keywords){
+                    left.keywords[key] = right.keywords[key]
+                }
+                console.log('left', left)
+            }
+            return
+        }
+        throw $M.Error(`cannot add ${$M.get_class(right)} to table`)
+    }
+}
 
 $M.del_exc = function(){
     var frame = $M.last($M.frames_stack)
@@ -297,7 +355,33 @@ $M.operations = {
             return x + y
         }else if(Array.isArray(x) && Array.isArray(y)){
             return x.slice().concat(y)
+        }else if(x instanceof Table){
+            if(y instanceof Slice){
+                if(y.stop === Number.POSITIVE_INFINITY){
+                    throw $M.Error('cannot add infinite range')
+                }
+                var res = x.copy()
+                for(var i = y.start; i < y.stop; i++){
+                    res.items[res.items.length] = i
+                }
+                return res
+            }else if(y instanceof Table){
+                var res = x.copy()
+                for(var item of y.items){
+                    res.items.push(item)
+                }
+                for(var key in y.keywords){
+                    res.keyswords[key] = y.keywords[key]
+                }
+                return res
+            }
+        }else if(x instanceof Slice){
+            if(y.stop === Number.POSITIVE_INFINITY){
+                throw $M.Error('cannot add infinite range')
+            }
+            return $M.operations.add(x.to_object(), y)
         }else{
+            console.log('x', x, 'y', y)
             $M.operations.error("+", x, y)
         }
     },
@@ -335,6 +419,9 @@ $M.operations = {
             $M.operations.error("*", x, y)
         }
     },
+    push: function(item, table){
+        table.items.push(item)
+    },
     sub: function(x, y){
         if(is_number(x) && is_number(y)){
             return x.valueOf() - y.valueOf()
@@ -363,15 +450,15 @@ $M.repr = function(obj){
             items.push($M.str(item))
         }
         return '[' + items.join(', ') + ']'
-    }else if(obj.$is_struct_type || obj.$is_struct_instance){
+    }else if(obj instanceof Table || obj.$is_struct_instance){
         var elts = []
-        for(const item of obj.$items){
+        for(const item of obj.items){
             elts.push($M.repr(item))
         }
-        for(var key in obj.$keywords){
-            elts.push(`${key}=${$M.repr(obj.$keywords[key])}`)
+        for(var key in obj.keywords){
+            elts.push(`${key}=${$M.repr(obj.keywords[key])}`)
         }
-        res = obj.$is_struct_type ? '<table> ' : '<instance> '
+        res = obj instanceof Table ? '' : '<instance> '
         res += `[${elts.join(', ')}]`
         return res
     }else if(typeof obj == "function"){
@@ -440,12 +527,36 @@ $M.search = function(name){
     throw $M.Error("Name error: " + name)
 }
 
+function Slice(start, stop){
+    this.start = start
+    this.stop = stop
+}
+
+Slice.prototype[Symbol.iterator] = function*(){
+    for(var i = this.start; i < this.stop; i++){
+      yield i
+    }
+}
+
+Slice.prototype.to_object = function(){
+    if(this.infinite){
+        throw $M.error('cannot convert infinite range to object')
+    }
+    var res = new Table(),
+        pos = 0
+    for(var i = this.start; i < this.stop; i++){
+        res.items[pos++] = i
+    }
+    return res
+}
+
 $M.range = function(start, stop){
     if(start === undefined){
         start = 0
     }
     if(stop === undefined){
-        throw $M.Error("No stop value for range")
+        stop = Number.POSITIVE_INFINITY
+        this.infinite = true
     }
     if(typeof start != "number"){
         throw $M.Error("start is not an integer")
@@ -453,11 +564,7 @@ $M.range = function(start, stop){
     if(typeof stop != "number"){
         throw $M.Error("stop is not an integer")
     }
-    var res = []
-    for(var i = start; i < stop; i++){
-        res.push(i)
-    }
-    return res
+    return new Slice(start, stop)
 }
 
 $M.struct = function(attrs){
@@ -484,41 +591,35 @@ $M.struct = function(attrs){
     return klass
 }
 
+function Table(items, keywords){
+    this.items = items ?? []
+    this.keywords = keywords ?? {}
+}
+
+Table.prototype[Symbol.iterator] = function*(){
+    var pos = 0
+    for(var item of this.items){
+        yield new Table([pos++, item])
+    }
+    for(var key in this.keywords){
+        yield new Table([key, this.keywords[key]])
+    }
+}
+
+Table.prototype.copy = function(){
+    var res = new Table([], {})
+    res.items = new Array(this.items.length)
+    for(var i = 0, len = this.items.length; i < len; i++){
+        res.items[i] = this.items[i]
+    }
+    for(var key in this.keywords){
+        res.keywords[key] = this.keywords[key]
+    }
+    return res
+}
+
 $M.table = function(items, keywords){
-    var keys = Object.keys(keywords)
-    var klass = function(){
-        var res = {
-            $is_struct_instance: true,
-            $items: [],
-            $keywords: {},
-            $type: klass
-        }
-        for(var i = 0, len = arguments.length; i < len; i++){
-            if(i < items.length){
-                res.$items.push(arguments[i])
-            }else if(i < items.length + keys.length){
-                res.$keywords[keys[i - items.length]] = arguments[i]
-            }else{
-                throw $M.Error(`too many arguments: ${arguments.length}` +
-                    `, expected at most ${items.length + keys.length}`)
-            }
-        }
-        return res
-    }
-
-    klass.$is_struct_type = true
-    klass.$items = items
-    klass.$keywords = keywords
-    klass[Symbol.iterator] = function*(){
-        for(const item of klass.$items){
-            yield item
-        }
-        for(var key in klass.$keywords){
-            yield [key, klass.$keywords[key]]
-        }
-    }
-
-    return klass
+    return new Table(items, keywords)
 }
 
 
@@ -531,6 +632,19 @@ $M.use = function(module, code){
 
     var frame = $M.frames_stack[$M.frames_stack.length - 1]
     $M.imported[module] = locals
+}
+
+$M.make_iterable = function(obj){
+    if(typeof obj == "number"){
+        return new Slice(0, obj)[Symbol.iterator]()
+    }else if(typeof obj == "string"){
+        return obj[Symbol.iterator]()
+    }else if(obj instanceof Slice){
+        return obj[Symbol.iterator]()
+    }else if(obj instanceof Table){
+        return obj[Symbol.iterator]()
+    }
+    throw $M.error('object is not iterable')
 }
 
 })(__MINILANG__)

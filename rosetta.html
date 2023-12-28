@@ -17,12 +17,12 @@
 # Fibonacci suite
 fibo(n) =
   n == 0 ?
-    ! 1
+    -> 1
   n == 1 ?
-    ! 1
-  ! fibo(n - 2) + fibo(n - 1)
+    -> 1
+  -> fibo(n - 2) + fibo(n - 1)
 
-("fibo(10)", fibo(10)) >>
+>> ("fibo(10)", fibo(10))
 
 # Factorial
 fact(n) =
@@ -30,11 +30,11 @@ fact(n) =
   i = 2
   @
     i > n ?
-      ! res
+      -> res
     res = res * i
     i = i + 1
 
-("fact(10)", fact(10)) >>
+>> ("fact(10)", fact(10))
 
 # Palindrome
 is_palindrome(s) =
@@ -47,42 +47,39 @@ is_palindrome(s) =
   @
     s[i0] != s[i1] ?
       res = 0
-      !
+      ->
     i0 = i0 + 1
     i1 = i1 - 1
     i1 <= i0 ?
-      !
+      ->
 
   res == 1 ?
-    ! s + " is a palindrome"
+    -> s + " is a palindrome"
   res == 0 ?
-    ! s + " is not a palindrome"
+    -> s + " is not a palindrome"
 
-is_palindrome("laval") >>
-is_palindrome("abba") >>
-is_palindrome("azerty") >>
+>> is_palindrome("laval")
+>> is_palindrome("abba")
+>> is_palindrome("azerty")
 
 # stack
 empty(t) =
   t ?
-    ! "false"
-  ! "true"
-
-push(t, item) =
-  t <= item
+    ->"false"
+  ->"true"
 
 pop(t) =
   res = t[-1]
   t[-1:] = []
-  ! res
+  -> res
 
 t = []
 @ 5:i
-  push(t, i * 2)
+  i * 2 -> t
 
-("after push", t) >>
-("pop pop pop", pop(t), pop(t), pop(t)) >>
-("empty ?", empty(t)) >>
+>> ("after push", t)
+>> ("pop pop pop", pop(t), pop(t), pop(t))
+>> ("empty ?", empty(t))
 
 # binary search
 binary_search(t, value) =
@@ -93,18 +90,18 @@ binary_search(t, value) =
   high = len - 1
   @
     low > high ?
-      ! -1
+      ->-1
     mid = (low + high) // 2
     value == t[mid] ?
-      ! mid
+      -> mid
     t[mid] > value ?
       high = mid - 1
     t[mid] < value ?
       low = mid + 1
 
 t = [0, 1, 2, 5, 7, 10]
-("position of", 2, "in", t, binary_search(t, 2)) >>
-("position of", 3, "in", t, binary_search(t, 3)) >>
+>> ("position of", 2, "in", t, binary_search(t, 2))
+>> ("position of", 3, "in", t, binary_search(t, 3))
 
 # power and root
 pow(x, n) =
@@ -112,9 +109,9 @@ pow(x, n) =
   res = 1
   @ [:n]
     res = res * x
-  ! res
+  -> res
 
-("2 ** 3 =", pow(2, 3)) >>
+>> ("2 ** 3 =", pow(2, 3))
 
 root(x, n) =
   # n-root of real positive number x
@@ -129,10 +126,10 @@ root(x, n) =
     delta < 0 ?
       delta = -delta
     delta < precision ?
-      ! u
+      -> u
 
-("square root of 2", root(2, 2)) >>
-("root(2, 3)", root(2, 3)) >>
+>> ("square root of 2", root(2, 2))
+>> ("root(2, 3)", root(2, 3))
 
 # closest pair
 closest_pair(t) =
@@ -141,6 +138,7 @@ closest_pair(t) =
   i1 = 1
   dmin = -1
   closest = [-1, -1]
+  >> ('points', points)
   @
     dx = points[i0].x - points[i1].x
     dy = points[i0].y - points[i1].y
@@ -159,8 +157,8 @@ closest_pair(t) =
       i0 = i0 + 1
       i1 = i0 + 1
       i0 == nb_points - 1 ?
-        !
-  ! [closest, dmin]
+        ->
+  -> [closest, dmin]
 
 point = [x=0, y=0]
 points = [[95, 67], [44, 84], [10, 36], [61, 7],
@@ -178,8 +176,8 @@ result = closest_pair(points)
 closest = result[0]
 dmin = result[1]
 
-("closest pair", points[closest[0]], points[closest[1]],
-      "distance", dmin, root(dmin, 2)) >>
+>> ("closest pair", points[closest[0]], points[closest[1]],
+      "distance", dmin, root(dmin, 2))
 
 # 99 bottles of beer
 s1 = "bottles of beer"
@@ -189,15 +187,15 @@ s3 = "Take one down, pass it around"
 count = 99
 @
     count == 0 ?
-      !
-    (count, s1, s2) >>
-    (count, s1) >>
-    s3 >>
+      ->
+    >> (count, s1, s2)
+    >> (count, s1)
+    >> s3
     count = count - 1
     count == 1 ?
         s1 = "bottle of beer"
-    (count, s1, s2) >>
-    () >>
+    >> (count, s1, s2)
+    >> ()
 
 </textarea>
 </td>

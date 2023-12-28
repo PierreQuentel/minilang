@@ -29,8 +29,12 @@ Your grandsons, they won't understand
 On top of this, I ain't ever gonna understand"
 
 # s[i] = get character at a position i (starts at 0)
-s2[0] # 'a'
-s2[10] # raises an error
+s = 'abcd'
+s[0] # 'a'
+s[10] # raises an error
+
+# same result without []
+s 0 # 'a'
 
 # s[i:j] = get substring from position i (included) to j (not included)
 s2[1:3] # 'tr'
@@ -90,7 +94,10 @@ t[:1] = [] # remove the first element = ["c", 3.14]
 t[:] = [] # clears the list
 
 # add an element to the items
-t <= "d" # think of <= as "left arrow", not "less or equal"
+t += [d]
+
+# test membership
+"d" <- t # true (think of the "belongs to" math sign ∈)
 
 # concatenate two lists
 t = ["a", "b"] + [:2] # ["a", "b", 0, 1]
@@ -107,7 +114,7 @@ pos.x # 2
 Printing values
 ===============
 ```
-([x[, y...]]) >>
+>> ([x[, y...]])
 ```
 prints the variables passed as arguments, separated by a whitespace and ending
 with a newline
@@ -123,7 +130,7 @@ Each of these signs have an associated "code block", the instructions that
 are executed if the condition is true / inside the loop / when the function is
 called.
 
-Additionaly, a 4th sign `!` is used to exit from a loop or return a
+Additionaly, a 4th sign `->` is used to exit from a loop or return a
 value from a function.
 
 
@@ -132,7 +139,7 @@ condition
 ```
 s = 4
 s > 3 ?
-  (s, "is greater than 3") >>
+  >> (s, "is greater than 3")
 ```
 
 The code block executed if the condition before `?` is true is determined by
@@ -143,14 +150,14 @@ string, the empty list, or the number 0. Otherwise it is consired true.
 
 loop
 ----
-Without any argument, `@` executes its code block until it finds `!`
+Without any argument, `@` executes its code block until it finds `->`
 ```
 x = 0
 @
   x >>
   x = x + 1
   x > 5 ?
-    !
+    ->
 ```
 
 An argument can be specified after `@`. If it is a string or a list, the loop
@@ -163,7 +170,7 @@ s = 'abcdefg'
 len = 0
 @ s
     len = len + 1
-("length of", s, len) >>
+>> ("length of", s, len)
 ```
 
 If we want to use the characters inside the loop, we can define the name of the
@@ -176,10 +183,10 @@ nb = 0
 @ s:car
   car == 'a' ?
     nb = nb + 1
-(nb, "times 'a' in", s) >>
+>> (nb, "times 'a' in", s)
 ```
 
-`!` can be used in this kind of loop
+`->` can be used in this kind of loop
 
 ```
 # search if a character is inside a string
@@ -188,15 +195,15 @@ s = 'abracadadra'
 searched = 'd'
 @ s:car
   car == searched ?
-    (s, "has character", searched) >>
-    ! # no use reading next items
+    >> (s, "has character", searched)
+    -> # no use reading next items
 ```
 
 This syntax can be also used if the argument of `@` is a number
 
 ```
 @ 10:i
-    i >>
+    >> i
 ```
 
 functions
@@ -205,46 +212,47 @@ Functions are defined with the function name, a list of parameters and `=`.
 When the function is called, its code block is executed.
 ```
 f(x) =
-    x >>
+    >> x
 ```
-To define a return value, use `!` followed by the value to return:
+To define a return value, use `->` followed by the value to return:
 ```
 double(x) =
-    ! x * 2
+    -> x * 2
 ```
 Reusing the code in the `@` section, we can define a function that returns
-the length of a list of string:
+the length of a list or a string:
 ```
 len(x) =
   result = 0
   @ x
     result = result + 1
-  ! result
+  -> result
 ```
 or a function that tests if a character is inside a string
 ```
 has(string, char) =
   @ string:c
     c == char ?
-      ! "true"
-  ! "false"
+      -> "true"
+  -> "false"
 
 has("abracadabra", "a") # "true"
 ```
 
 exit
 ----
-Inside a loop, `!` can be followed by an expression if the loop is inside a
-function: in this case, `!` both exits the loop and returns the function
+Inside a loop, `->` can be followed by an expression if the loop is inside a
+function: in this case, `->` both exits the loop and returns the function
 value
 
 The code above can be more concise
 ```
 has(string, char) =
     @ string:c
-        exit "true" if c == char
-    exit "false"
+        c == char ?
+          -> "true"
+    -> "false"
 ```
 
-If `exit` is in a function body but not in a loop, it must be followed by an
+If `->` is in a function body but not in a loop, it must be followed by an
 expression.
