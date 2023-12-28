@@ -33,9 +33,6 @@ s = 'abcd'
 s[0] # 'a'
 s[10] # raises an error
 
-# same result without []
-s 0 # 'a'
-
 # s[i:j] = get substring from position i (included) to j (not included)
 s2[1:3] # 'tr'
 s2[:3] # 'str' (missing first position = 0)
