@@ -114,7 +114,8 @@ pos.x # 2
 Printing values
 ===============
 ```python
->> ([x[, y...]])
+>> x
+>> x , y
 ```
 prints the variables passed as arguments
 
