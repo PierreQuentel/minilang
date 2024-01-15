@@ -116,8 +116,7 @@ Printing values
 ```python
 >> ([x[, y...]])
 ```
-prints the variables passed as arguments, separated by a whitespace and ending
-with a newline
+prints the variables passed as arguments
 
 User input
 ==========
@@ -131,7 +130,7 @@ The value can also be an attribute or a subscription
 ```python
 << x.a
 << x['n']
-``
+```
 
 Programs
 ========

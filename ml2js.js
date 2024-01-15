@@ -1110,6 +1110,10 @@ var ExprCtx = function(context, name, with_commas){
                 break
             case '.':
                 return new AttrCtx(context)
+          case ',':
+              if(this.with_commas){
+                  return new AbstractExprCtx(this.parent, false)
+              }
           case '[':
               return new AbstractExprCtx(new SubCtx(context), true)
           case '(':
@@ -2119,7 +2123,7 @@ var NodeCtx = function(node){
                         var expr = new AbstractExprCtx(context, true)
                         return $transition(expr, token, value)
                     case '<<':
-                        return new AbstractExprCtx(new InputCtx(context), true)
+                        return new AbstractExprCtx(new InputCtx(context), false)
                     case '>>':
                         return new AbstractExprCtx(new OutputCtx(context), true)
                 }
@@ -2442,7 +2446,7 @@ OutputCtx.prototype.transition = function(token, value){
 }
 
 OutputCtx.prototype.to_js = function(){
-    return `$M.display(${this.tree[0].to_js()})`
+    return `$M.display(${$to_js(this.tree)})`
 }
 
 var RawJSCtx = function(context, js){
