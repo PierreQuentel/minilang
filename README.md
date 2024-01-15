@@ -1,3 +1,5 @@
+Language :...->?
+
 Data types
 ==========
 
@@ -99,7 +101,8 @@ t += [d]
 # concatenate two lists
 t = ["a", "b"] + [:2] # ["a", "b", 0, 1]
 
-# creating objects from a table
+Cloning a table
+===============
 # define a table "Position"
 Position = [x=0, y=0]
 
@@ -110,18 +113,32 @@ pos.x # 2
 
 Printing values
 ===============
-```
+```python
 >> ([x[, y...]])
 ```
 prints the variables passed as arguments, separated by a whitespace and ending
 with a newline
+
+User input
+==========
+```python
+<< x
+```
+opens a prompt box and stores the result in variable x
+
+The value can also be an attribute or a subscription
+
+```python
+<< x.a
+<< x['n']
+``
 
 Programs
 ========
 Programs are about conditions, loops and functions.
 
 We use only 3 signs, one for each of these features : `?` for conditions,
-`@` for loops, `=` for functions.
+`...` for loops, `:` for functions.
 
 Each of these signs have an associated "code block", the instructions that
 are executed if the condition is true / inside the loop / when the function is
@@ -147,37 +164,38 @@ string, the empty list, or the number 0. Otherwise it is consired true.
 
 loop
 ----
-Without any argument, `@` executes its code block until it finds `->`
+Without any argument, `...` executes its code block until it finds `->`
 ```
 x = 0
-@
+...
   x >>
   x = x + 1
   x > 5 ?
     ->
 ```
 
-An argument can be specified after `@`. If it is a string or a list, the loop
-is executed as many times as there are characters in the string or items in
-the list. If it is a number, it is executed this number of times.
+An argument can be specified after `...`. If it is a string or a list, the
+loop is executed as many times as there are characters in the string or items
+in the list. If it is a number, it is executed this number of times.
 
 ```
 # get string length
 s = 'abcdefg'
 len = 0
-@ s
+... s
     len = len + 1
 >> ("length of", s, len)
 ```
 
 If we want to use the characters inside the loop, we can define the name of the
-variable that will hold them during iteration
+variable that will hold them during iteration. This is done by the syntax
+`... s -> car`
 
 ```
 # count the number of 'a'
 s = 'abracadabra'
 nb = 0
-@ s:car
+... s -> car
   car == 'a' ?
     nb = nb + 1
 >> (nb, "times 'a' in", s)
@@ -190,45 +208,45 @@ nb = 0
 s = 'abracadadra'
 
 searched = 'd'
-@ s:car
+... s -> car
   car == searched ?
     >> (s, "has character", searched)
     -> # no use reading next items
 ```
 
-This syntax can be also used if the argument of `@` is a number
+This syntax can be also used if the argument of `...` is a number
 
 ```
-@ 10:i
+... 10 -> i
     >> i
 ```
 
 functions
 ---------
-Functions are defined with the function name, a list of parameters and `=`.
+Functions are defined with the function name, a list of parameters and `:`.
 When the function is called, its code block is executed.
 ```
-f(x) =
+f(x):
     >> x
 ```
 To define a return value, use `->` followed by the value to return:
 ```
-double(x) =
+double(x):
     -> x * 2
 ```
-Reusing the code in the `@` section, we can define a function that returns
+Reusing the code in the `...` section, we can define a function that returns
 the length of a list or a string:
 ```
-len(x) =
+len(x):
   result = 0
-  @ x
+  ... x
     result = result + 1
   -> result
 ```
 or a function that tests if a character is inside a string
 ```
-has(string, char) =
-  @ string:c
+has(string, char):
+  ... string -> c
     c == char ?
       -> "true"
   -> "false"
@@ -244,8 +262,8 @@ value
 
 The code above can be more concise
 ```
-has(string, char) =
-    @ string:c
+has(string, char):
+    ... string -> c
         c == char ?
           -> "true"
     -> "false"
@@ -253,3 +271,22 @@ has(string, char) =
 
 If `->` is in a function body but not in a loop, it must be followed by an
 expression.
+
+Table methods
+=============
+If an attribute of a table is a function, it is called with the table as the
+first argument
+
+```python
+List = [items=[]]
+
+len(t):
+  x = 0
+  ... t.items
+    x = x + 1
+  -> x
+
+List.len = len
+
+>> List([4, 8, 'a']).len()
+```

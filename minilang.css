@@ -1,7 +1,11 @@
 textarea{
-    background-color: #000;
-    color: #fff;
+    background-color: #eee;
+    color: #000;
     font-family: consolas, "courier new";
+}
+
+#src {
+    display: none;
 }
 
 #output{
@@ -14,11 +18,19 @@ textarea{
     font-family: arial;
 }
 
-div.editor{
+.editor{
     font-family: consolas, courier;
     white-space: pre;
     font-size: 12px;
-    color: white;
-    background-color: #555;
+    color: #550;
+    background-color: #eee;
     padding: 0.5em;
+}
+
+.line_nums {
+    background-color: #fff;
+    color: #000;
+    font-family: consolas, courier;
+    padding-top: 4px;
+    padding-right: 6px;
 }

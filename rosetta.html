@@ -8,14 +8,9 @@
 </head>
 
 <body>
-<button id="run">run</button>
-<br>
-<table width="100%">
-<tr>
-<td valign="top">
-<textarea id="editor" rows="30" cols="60" autocomplete="off">
-# Fibonacci suite
-fibo(n) =
+
+<div id="src"># Fibonacci suite
+fibo(n):
   n == 0 ?
     -> 1
   n == 1 ?
@@ -25,10 +20,10 @@ fibo(n) =
 >> ("fibo(10)", fibo(10))
 
 # Factorial
-fact(n) =
+fact(n):
   res = 1
   i = 2
-  @
+  ...
     i > n ?
       -> res
     res = res * i
@@ -37,14 +32,14 @@ fact(n) =
 >> ("fact(10)", fact(10))
 
 # Palindrome
-is_palindrome(s) =
+is_palindrome(s):
   len = 0
   @ s
     len = len + 1
   i0 = 0
   i1 = len - 1
   res = 1
-  @
+  ...
     s[i0] != s[i1] ?
       res = 0
       ->
@@ -63,26 +58,26 @@ is_palindrome(s) =
 >> is_palindrome("azerty")
 
 # stack
-empty(t) =
+empty(t):
   t ?
     ->"false"
   ->"true"
 
-pop(t) =
+pop(t):
   res = t[-1]
   t[-1:] = []
   -> res
 
 t = []
-@ 5:i
-  i * 2 -> t
+... 5 -> i
+  t += [i * 2]
 
 >> ("after push", t)
 >> ("pop pop pop", pop(t), pop(t), pop(t))
 >> ("empty ?", empty(t))
 
 # binary search
-binary_search(t, value) =
+binary_search(t, value):
   low = 0
   len = 0
   @ t
@@ -90,7 +85,7 @@ binary_search(t, value) =
   high = len - 1
   @
     low > high ?
-      ->-1
+      -> -1
     mid = (low + high) // 2
     value == t[mid] ?
       -> mid
@@ -104,21 +99,21 @@ t = [0, 1, 2, 5, 7, 10]
 >> ("position of", 3, "in", t, binary_search(t, 3))
 
 # power and root
-pow(x, n) =
+pow(x, n):
   # real x to power n
   res = 1
-  @ [:n]
+  ... n
     res = res * x
   -> res
 
 >> ("2 ** 3 =", pow(2, 3))
 
-root(x, n) =
+root(x, n):
   # n-root of real positive number x
   # Newton formula : u = (((n - 1) * u) + (x / u ** (n - 1))) / n
   u = x / n
   precision = 0.00000000000001
-  @
+  ...
     u1 = (n - 1) * u
     u2 = x / pow(u, n - 1)
     u = (u1 + u2) / n
@@ -132,14 +127,14 @@ root(x, n) =
 >> ("root(2, 3)", root(2, 3))
 
 # closest pair
-closest_pair(t) =
+closest_pair(t):
   # brute force algorithm
   i0 = 0
   i1 = 1
   dmin = -1
   closest = [-1, -1]
   >> ('points', points)
-  @
+  ...
     dx = points[i0].x - points[i1].x
     dy = points[i0].y - points[i1].y
     d = (dx * dx) + (dy * dy)
@@ -169,7 +164,7 @@ points = [[95, 67], [44, 84], [10, 36], [61, 7],
 
 nb_points = 0
 @ points: pt
-  points[nb_points] = point(pt[0], pt[1])
+  points[nb_points] = point(pt[1][0], pt[1][1])
   nb_points = nb_points + 1
 
 result = closest_pair(points)
@@ -185,7 +180,7 @@ s2 = "on the wall"
 s3 = "Take one down, pass it around"
 
 count = 99
-@
+...
     count == 0 ?
       ->
     >> (count, s1, s2)
@@ -195,13 +190,21 @@ count = 99
     count == 1 ?
         s1 = "bottle of beer"
     >> (count, s1, s2)
-    >> ()
-
-</textarea>
-</td>
+    >> ()</div>
+    
+<button id="run">run</button>
+<br>
+<table width="100%" cellspacing="0" cellpadding="0">
+<tr>
 <td valign="top">
+<div class="editor" id="editor" autocomplete="off" contenteditable></div>
+</td>
 
+<td valign="top">
 <textarea id="output" cols=60 rows=30 autocomplete="off"></textarea>
+
+<script src="editor.js">
+</script>
 
 </body>
 </html>

@@ -24,15 +24,32 @@ $M.language = window.navigator.userLanguage || window.navigator.language
 $M.max_int = Math.pow(2, 53) - 1
 $M.min_int = -$M.max_int
 
-// Used to compute the hash value of some objects (see
-// py_builtin_functions.js)
-$M.$py_next_hash = Math.pow(2, 53) - 1
+$M.Error = function(message){
+    var err = Error(message)
+    err.stack = $M.frames_stack.slice()
+    return err
+}
 
-// $py_UUID guarantees a unique id.  Do not use this variable
-// directly, use the $M.UUID function defined in py_utils.js
-$M.$py_UUID = 0
+$M.handle_error = function(err){
+    var src = $M.src,
+        lines = src.split("\n")
+    if(err.type == "SyntaxError"){
+        $M.display("Syntax error: " + err.msg)
+        $M.display("line " + err.line_num)
+        $M.display(src.split("\n")[err.line_num - 1])
+    }else{
+        $M.display(err.message)
+        console.log(err)
+        for(var i = 0, len = err.stack.length; i < len; i++){
+            var lnum = parseInt(err.stack[i].$line_info.split(",")[0]),
+                line = lines[lnum - 1]
+            $M.display("line " + lnum)
+            $M.display("    " + line)
+        }
+    }
+    throw err
+}
 
-$M.scripts = {} // for Python scripts embedded in a JS file
 
 $M.get_class = function(obj){
     switch(typeof obj) {
@@ -88,7 +105,9 @@ $M.call = function(obj){
                 }else{
                     res.keywords[key] = obj.keywords[key]
                 }
+                i++
             }
+            res.table = obj
             return res
         }
     }
@@ -115,6 +134,22 @@ $M.compare = {
                 return true
             }
             return false
+        }else if(x instanceof Table && y instanceof Table){
+            if(! $M.compare.eq(x.items, y.items)){
+                return false
+            }
+            if(Object.keys(x.keywords).length != Object.keys(y.keywords).length){
+                return false
+            }
+            for(let key in x.keywords){
+                if(! y.keywords.hasOwnProperty(key)){
+                    return false
+                }
+                if(! $M.compare.eq(x.keywords[key]), y.keywords[key]){
+                    return false
+                }
+            }
+            return true
         }else{
             $M.compare.error("==", x, y)
         }
@@ -202,6 +237,11 @@ $M.getattr = function(obj, key){
     }else if(obj instanceof Table){
         var res = obj.keywords[key]
         if(res !== undefined){
+            if(typeof res == 'function'){
+                return function(){
+                    return res(obj, ...arguments)
+                }
+            }
             return res
         }
         throw $M.Error(`attribute error ${key}`)
@@ -226,18 +266,23 @@ $M.setattr = function(obj, key, value){
 }
 
 $M.getitem = function(obj, key){
+    var res
     if(obj instanceof Table){
         if(typeof key == "number"){
             if(key < 0){
                 key = key + obj.items.length
             }
-            var res = obj.items[key]
+            res = obj.items[key]
         }else if(typeof key == "string"){
-            var res = obj.keywords[key]
+            if(key.match(/^\d+/)){
+                res = obj.items[key]
+            }else{
+                res = obj.keywords[key]
+            }
         }else if(key instanceof Array){
             // slice
-            slice_to_index(key, obj.$items)
-            return $M.table(obj.$items.slice(key[0], key[1]))
+            slice_to_index(key, obj.items)
+            return $M.table(obj.items.slice(key[0], key[1]))
         }else{
             throw $M.Error("wrong index type: " + $get_class(key))
         }
@@ -296,11 +341,8 @@ $M.is_member = function(item, obj){
 $M.setitem = function(obj, key, value){
     if(obj instanceof Table || obj.$is_struct_instance){
         if(typeof key == "number"){
-            if(obj.items[key] !== undefined){
-                obj.items[key] = value
-                return
-            }
-            throw $M.Error("unknown key: " + key)
+            obj.items[key] = value
+            return
         }else if(typeof key == "string"){
             obj.keywords[key] = value
             return
@@ -320,7 +362,6 @@ $M.setitem = function(obj, key, value){
 }
 
 $M.augm_assign = function(sign, left, right){
-    console.log('augm assign', sign, left, right)
     if(sign == '+'){
         if(left instanceof Table){
             if(right instanceof Table){
@@ -330,11 +371,31 @@ $M.augm_assign = function(sign, left, right){
                 for(key in right.keywords){
                     left.keywords[key] = right.keywords[key]
                 }
-                console.log('left', left)
+                return left
             }
-            return
+            throw $M.Error(`cannot add ${$M.get_class(right)} to table`)
+        }else if(typeof left == 'number'){
+            if(typeof right == 'number'){
+                return left + right
+            }
+            throw $M.Error(`cannot add ${$M.get_class(right)} to number`)
         }
-        throw $M.Error(`cannot add ${$M.get_class(right)} to table`)
+    }else{
+        if(typeof left == 'number'){
+            if(typeof right == 'number'){
+                switch(sign){
+                    case '+':
+                        return left + right
+                    case '-':
+                        return left - right
+                    case '*':
+                        return left * right
+                    case '/':
+                        return left / right
+                }
+            }
+            throw $M.Error(`${sign} not supported between ${$M.get_class(right)} and number`)
+        }
     }
 }
 
@@ -353,6 +414,10 @@ $M.operations = {
             return x.valueOf() + y.valueOf()
         }else if(typeof x == "string" && typeof y == "string"){
             return x + y
+        }else if(typeof x == 'string' && typeof y == 'number'){
+            return x + y // coerce number to string
+        }else if(typeof x == 'number' && typeof y == 'string'){
+            return x + y // idem
         }else if(Array.isArray(x) && Array.isArray(y)){
             return x.slice().concat(y)
         }else if(x instanceof Table){
@@ -462,7 +527,7 @@ $M.repr = function(obj){
         res += `[${elts.join(', ')}]`
         return res
     }else if(typeof obj == "function"){
-        return 'function ' + obj.$name
+        return 'function' + (obj.name ? ' ' + obj.name : '')
     }else{
         return '<unprintable>'
     }
@@ -515,14 +580,10 @@ $M.reset_output = function(){
 }
 
 $M.search = function(name){
-    if(name == "print"){
-        return $M.display
-    }else{
-        var frame = $M.frames_stack[$M.frames_stack.length - 1],
-            res = frame[name]
-        if(res !== undefined){
-            return res
-        }
+    var frame = $M.frames_stack[$M.frames_stack.length - 1],
+        res = frame[name]
+    if(res !== undefined){
+        return res
     }
     throw $M.Error("Name error: " + name)
 }

@@ -6,21 +6,19 @@
 <script type="text/javascript" src="ml2js.js"></script>
 <link rel="stylesheet" href="minilang.css">
 
-<script src="string.js"></script>
 </head>
 
 <body>
-<button id="run">run</button>
-<br>
-<table width="100%">
-<tr>
-<td valign="top">
-<div id="editor" class="editor" width="300" height="500" contenteditable autocomplete="off">
-import string
+
+<div id="src">len(s):
+  x = 0
+  ... s
+    x += 1
+  -> x
 
 # with simple quotes
 s1 = 'string'
-print(string.len(s1))
+>> len(s1)
 
 # or double quotes
 s2 = "string"
@@ -33,9 +31,9 @@ On top of this, I ain't ever gonna understand"
 
 # s[i] = get character at a position i (starts at 0)
 s2[0] # 'a'
-s2[10] # raises an error
+# s2[10] # raises an error
 
-print(s2[0] == 'a')
+>> (s2[0] == 's')
 # s[i:j] = get substring from position i (included) to j (not included)
 s2[1:3] # 'tr'
 s2[:3] # 'str' (missing first position = 0)
@@ -50,22 +48,35 @@ s2[-1] # last character, 'g'
 s = 'S' + s2[1:] # 'String'
 
 # test if empty string
-if s
-    print('not empty')
+s ?
+    >> 'not empty'
 
 s = ''
 empty = "true"
-if s
+s ?
     empty = "false"
-print("empty", empty)
+>> ("empty", empty)
 
 # characters cannot be changed
 s2[0] = 'S' # raises an error
 </div>
-</td>
-<td valign="top">
 
+<button id="run">run</button>
+<br>
+<table width="100%" cellspacing="0" cellpadding="0">
+<tr>
+<td valign="top">
+<div class="editor" id="editor" autocomplete="off" contenteditable></div>
+</td>
+
+<td valign="top">
 <textarea id="output" cols=60 rows=30 autocomplete="off"></textarea>
 
+<script src="editor.js" type="module">
+</script>
+
+<script type="module" src="run.js">
+
+</script>
 </body>
 </html>

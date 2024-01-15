@@ -8,38 +8,28 @@
 </head>
 
 <body>
+
+<div id="src">
+x = []
+<< x[0]
+>> x
+</div>
+
 <button id="run">run</button>
 <br>
-<table width="100%">
+<table width="100%" cellspacing="0" cellpadding="0">
 <tr>
 <td valign="top">
-<textarea id="editor" rows="30" cols="60" autocomplete="off">
-t = [1]
-t += [2]
->> t
-</textarea>
+<div class="editor" id="editor" autocomplete="off" contenteditable></div>
 </td>
+
 <td valign="top">
-
 <textarea id="output" cols=60 rows=30 autocomplete="off"></textarea>
+<script src="editor.js" type="module">
+</script>
 
+<script type="module" src="run.js">
 
-
-<script>
-function Slice(start, stop){
-    this.start = start
-    this.stop = stop
-}
-
-Slice.prototype[Symbol.iterator] = function*(){
-    for(var i = this.start; i < this.stop; i++){
-      yield i
-    }
-}
-
-for(var item of new Slice(0,5)){
-  console.log(item)
-}
 </script>
 </body>
 </html>
