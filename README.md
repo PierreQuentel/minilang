@@ -101,6 +101,7 @@ t += [d]
 
 # concatenate two lists
 t = ["a", "b"] + [:2] # ["a", "b", 0, 1]
+```
 
 Cloning a table
 ===============
@@ -155,7 +156,7 @@ Each of these signs have an associated "code block", the instructions that
 are executed if the condition is true / inside the loop / when the function is
 called.
 
-Additionaly, a 4th sign `->` is used to exit from a loop or return from a 
+Additionaly, a 4th sign `->` is used to exit from a loop or return from a
 function.
 
 
