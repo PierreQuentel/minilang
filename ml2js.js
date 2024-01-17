@@ -416,7 +416,8 @@ AbstractExprCtx.prototype.transition = function(token, value){
                     context.parent.tree.pop() // remove abstract expression
                     var commas = context.with_commas
                     context = context.parent
-                    return new AbstractExprCtx(new NotCtx(context), false)
+                    var expr = new ExprCtx(context, 'not', false)
+                    return new AbstractExprCtx(new NotCtx(expr), false)
             }
             $_SyntaxError(context, 'token ' + token + ' after ' +
                 context)
@@ -542,15 +543,51 @@ AssignCtx.prototype.toString = function(){
     return '(assign) ' + this.tree[0] + '=' + this.tree[1]
 }
 
-AssignCtx.prototype.to_js = function(){
-    this.js_processed = true
-
-    // assignment
-    var left = this.tree[0]
+function assign(scope, context, left, right){
     while(left.type == 'expr'){
         left = left.tree[0]
     }
+    if(left.type == 'id'){
+        $bind(left.value, scope, context)
+        return 'var ' + left.value + ' = ' + right
+    }else if(left.type == 'attribute'){
+        console.log('left',left)
+        return `$M.setattr(${left.value.to_js()}, '${left.name}', ${right})`
+    }else if(left.type == 'sub'){
+        console.log('left',left)
+        return `$M.setitem(${left.value.to_js()}, ${left.tree[0].to_js()}, ${right})`
+
+    }
+}
+
+AssignCtx.prototype.to_js = function(){
+    this.js_processed = true
+
+    var scope = $get_scope(this)
+
+    // assignment
+    var left = this.tree[0]
     var right = this.tree[1]
+    console.log('left', this.tree[0])
+    if(this.sign == '='){
+        if(left.tree.length > 1){
+            // multiple assignment
+            var js = 'locals.$it = $M.make_iterable(' + right.to_js() + ');'
+            console.log(js)
+            for(var item of this.tree[0].tree){
+                js += assign(scope, this, item, 'locals.$it.next().value') + ';'
+            }
+            return js
+        }else{
+            return assign(scope, this, this.tree[0], right.to_js())
+        }
+    }else{
+        var left_js = left.to_js(),
+            right_js = right.to_js()
+        return `${left_js} = $M.augm_assign("${this.sign[0]}", ${left_js}, ${right_js})`
+    }
+    /*
+
     if(left.type == 'attribute' || left.type == 'sub'){
         // In case of an assignment to an attribute or a subscript, we
         // use setattr() and setitem
@@ -608,6 +645,7 @@ AssignCtx.prototype.to_js = function(){
     }else{
         return `${left_js} = $M.augm_assign("${this.sign[0]}", ${left_js}, ${right_js})`
     }
+    */
 }
 
 var AttrCtx = function(context){
@@ -995,7 +1033,7 @@ var ExitCtx = function(context){
             if(this.block_type == "def" &&
                     this.tree[0].type == "abstract_expr"){
                 // "exit" without a value is illegal in a function
-                $_SyntaxError(context, "exit without value in def")
+                // $_SyntaxError(context, "exit without value in def")
             }else if(this.block_type == "loop" &&
                     this.tree[0].type != "abstract_expr"){
                 // "exit" with a value in a loop is valid if the loop is
@@ -1037,7 +1075,7 @@ var ExitCtx = function(context){
     this.to_js = function(){
         var js
         if(this.block_type == "def"){
-            js = $to_js(this.tree)
+            js = $to_js(this.tree) || 'undefined'
             var js = 'var res = ' + js + ';' + '$M.leave_frame'
             js += '();return res'
         }else if(this.block_type == "loop"){
@@ -1112,8 +1150,9 @@ var ExprCtx = function(context, name, with_commas){
                 return new AttrCtx(context)
           case ',':
               if(this.with_commas){
-                  return new AbstractExprCtx(this.parent, false)
+                  return new AbstractExprCtx(this, false)
               }
+              break
           case '[':
               return new AbstractExprCtx(new SubCtx(context), true)
           case '(':
@@ -1215,7 +1254,7 @@ var ExprCtx = function(context, name, with_commas){
                            // The variable c2 must be evaluated only once ;
                            // we generate a temporary variable name to
                            // replace c2.to_js() and c2_clone.to_js()
-                           var vname = "$c" + chained_comp_num
+                           var vname = "locals.$c" + chained_comp_num
                            c2.to_js = function(){return vname}
                            c2_clone.to_js = function(){return vname}
                            chained_comp_num++
@@ -1330,15 +1369,18 @@ var ExprCtx = function(context, name, with_commas){
     this.to_js = function(arg){
         var res
         this.js_processed = true
-        if(this.type == 'list'){res = '[' + $to_js(this.tree) + ']'}
-        else if(this.tree.length == 1){res = this.tree[0].to_js(arg)}
-        else{res = '_b_.tuple.$factory([' + $to_js(this.tree) + '])'}
-
+        if(this.type == 'list'){
+            res = '[' + $to_js(this.tree) + ']'
+        }else if(this.tree.length == 1){
+            res = this.tree[0].to_js(arg)
+        }else{
+            res = '[' + $to_js(this.tree) + ']'
+        }
         return res
     }
 }
 
-var FloatCtx = function(context,value){
+var FloatCtx = function(context, value){
     // Class for literal floats
     this.type = 'float'
     this.value = value
@@ -2126,6 +2168,9 @@ var NodeCtx = function(node){
                         return new AbstractExprCtx(new InputCtx(context), false)
                     case '>>':
                         return new AbstractExprCtx(new OutputCtx(context), true)
+                    case '!':
+                        var expr = new ExprCtx(context, 'not', false)
+                        return new AbstractExprCtx(new NotCtx(expr), false)
                 }
                 break
             case 'def':
@@ -2214,7 +2259,7 @@ NotCtx.prototype.transition = function(token, value){
 
 
 NotCtx.prototype.to_js = function(){
-    return '! ' + $to_js(this.tree)
+    return '! (' + $to_js(this.tree) + ')'
 }
 
 var ObjectCtx = function(context){
@@ -2395,11 +2440,13 @@ var OpCtx = function(context,op){
             args = left + ', ' + right
         switch(this.op){
             case '&&':
-                return left + ' && ' + right
-            case 'is':
-                return left + ' === ' + right
-            case 'is_not':
-                return left + ' !== ' + right
+                console.log('&&, left', left, 'right', right)
+                console.log(this)
+                var js = ''
+                if(this.wrap){
+                    js += `(${this.wrap.name} = ${this.wrap.js}), `
+                }
+                return js + left + ' && ' + right
             case '||':
                 return left + ' || ' + right
             case '==':

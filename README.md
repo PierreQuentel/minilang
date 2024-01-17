@@ -1,5 +1,6 @@
 Language ...->:?
 
+
 Data types
 ==========
 
@@ -111,6 +112,16 @@ pos = Position(2, 5)
 pos.x # 2
 ```
 
+Multiple assignment
+===================
+```python
+x, y = 0, 4
+x, y = 'ab'
+a, b = x, y
+t = []
+t.x, t['y'] = 8, 9 # t is [x=8, y=9]
+```
+
 Printing values
 ===============
 ```python
@@ -126,7 +137,7 @@ User input
 ```
 opens a prompt box and stores the result in variable x
 
-The value can also be an attribute or a subscription
+The value can be an attribute or a subscription
 
 ```python
 << x.a
@@ -144,8 +155,8 @@ Each of these signs have an associated "code block", the instructions that
 are executed if the condition is true / inside the loop / when the function is
 called.
 
-Additionaly, a 4th sign `->` is used to exit from a loop or return a
-value from a function.
+Additionaly, a 4th sign `->` is used to exit from a loop or return from a 
+function.
 
 
 condition
@@ -254,23 +265,26 @@ has(string, char):
 has("abracadabra", "a") # "true"
 ```
 
-exit
-----
-Inside a loop, `->` can be followed by an expression if the loop is inside a
-function: in this case, `->` both exits the loop and returns the function
-value
+If a function has no explicit return value, `f()` is set to an undefined
+object, printed as `?`
 
-The code above can be more concise
 ```
-has(string, char):
-    ... string -> c
-        c == char ?
-          -> "true"
-    -> "false"
+f():
+  ->
+>> f() # prints '?'
 ```
 
-If `->` is in a function body but not in a loop, it must be followed by an
-expression.
+The undefined value is a unique object
+
+```
+f():
+  ->
+g():
+  >> 'ok'
+
+>> f() == g() # prints 'true'
+```
+
 
 Table methods
 =============

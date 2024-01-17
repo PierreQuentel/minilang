@@ -50,9 +50,12 @@ $M.handle_error = function(err){
     throw err
 }
 
+var UndefinedType = {}
 
 $M.get_class = function(obj){
     switch(typeof obj) {
+        case "undefined":
+            return UndefinedType
         case "number":
             if(obj % 1 === 0){ // this is an int
                return "int"
@@ -150,6 +153,8 @@ $M.compare = {
                 }
             }
             return true
+        }else if(x === undefined || y === undefined){
+            return x === undefined && y === undefined
         }else{
             $M.compare.error("==", x, y)
         }
@@ -503,6 +508,8 @@ $M.operations = {
 $M.repr = function(obj){
     if(typeof obj == "boolean"){
         return obj.toString()
+    }else if(obj === undefined){
+        return '?'
     }else if(is_number(obj)){
         return obj.toString()
     }else if(typeof obj == "string"){
@@ -546,10 +553,13 @@ var height = 18,
     svgns = 'http://www.w3.org/2000/svg'
 
 $M.display = function(){
-    var args = []
-    for(var i = 0, len = arguments.length; i < len; i++){
-        args.push($M.str(arguments[i]))
+    var args
+    if(arguments.length == 1 && Array.isArray(arguments[0])){
+        args = arguments[0]
+    }else{
+        args = Array.from(arguments)
     }
+    args = args.map($M.str)
     var text = args.join(" ")
     var output = document.getElementById("output")
     if(output.nodeName.toUpperCase() == "SVG"){
@@ -698,7 +708,7 @@ $M.use = function(module, code){
 $M.make_iterable = function(obj){
     if(typeof obj == "number"){
         return new Slice(0, obj)[Symbol.iterator]()
-    }else if(typeof obj == "string"){
+    }else if(typeof obj == "string" || Array.isArray(obj)){
         return obj[Symbol.iterator]()
     }else if(obj instanceof Slice){
         return obj[Symbol.iterator]()

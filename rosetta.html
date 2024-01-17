@@ -17,7 +17,7 @@ fibo(n):
     -> 1
   -> fibo(n - 2) + fibo(n - 1)
 
->> ("fibo(10)", fibo(10))
+>> "fibo(10)", fibo(10)
 
 # Factorial
 fact(n):
@@ -29,12 +29,12 @@ fact(n):
     res = res * i
     i = i + 1
 
->> ("fact(10)", fact(10))
+>> "fact(10)", fact(10)
 
 # Palindrome
 is_palindrome(s):
   len = 0
-  @ s
+  ... s
     len = len + 1
   i0 = 0
   i1 = len - 1
@@ -72,18 +72,18 @@ t = []
 ... 5 -> i
   t += [i * 2]
 
->> ("after push", t)
->> ("pop pop pop", pop(t), pop(t), pop(t))
+>> "after push", t
+>> "pop pop pop", pop(t), pop(t), pop(t)
 >> ("empty ?", empty(t))
 
 # binary search
 binary_search(t, value):
   low = 0
   len = 0
-  @ t
+  ... t
     len = len + 1
   high = len - 1
-  @
+  ...
     low > high ?
       -> -1
     mid = (low + high) // 2
@@ -163,7 +163,7 @@ points = [[95, 67], [44, 84], [10, 36], [61, 7],
           [42, 22], [52, 20], [36, 92], [74, 0]]
 
 nb_points = 0
-@ points: pt
+... points -> pt
   points[nb_points] = point(pt[1][0], pt[1][1])
   nb_points = nb_points + 1
 
@@ -191,7 +191,7 @@ count = 99
         s1 = "bottle of beer"
     >> (count, s1, s2)
     >> ()</div>
-    
+
 <button id="run">run</button>
 <br>
 <table width="100%" cellspacing="0" cellpadding="0">
@@ -203,8 +203,10 @@ count = 99
 <td valign="top">
 <textarea id="output" cols=60 rows=30 autocomplete="off"></textarea>
 
-<script src="editor.js">
+<script src="editor.js" type="module">
 </script>
 
+<script type="module" src="run.js">
+</script>
 </body>
 </html>
