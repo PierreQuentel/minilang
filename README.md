@@ -105,6 +105,7 @@ t = ["a", "b"] + [:2] # ["a", "b", 0, 1]
 
 Cloning a table
 ===============
+```
 # define a table "Position"
 Position = [x=0, y=0]
 
