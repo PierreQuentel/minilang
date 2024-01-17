@@ -105,7 +105,7 @@ t = ["a", "b"] + [:2] # ["a", "b", 0, 1]
 
 Cloning a table
 ===============
-```
+```python
 # define a table "Position"
 Position = [x=0, y=0]
 
@@ -163,7 +163,7 @@ function.
 
 condition
 ---------
-```
+```python
 s = 4
 s > 3 ?
   >> (s, "is greater than 3")
@@ -178,7 +178,7 @@ string, the empty list, or the number 0. Otherwise it is consired true.
 loop
 ----
 Without any argument, `...` executes its code block until it finds `->`
-```
+```python
 x = 0
 ...
   x >>
@@ -191,7 +191,7 @@ An argument can be specified after `...`. If it is a string or a list, the
 loop is executed as many times as there are characters in the string or items
 in the list. If it is a number, it is executed this number of times.
 
-```
+```python
 # get string length
 s = 'abcdefg'
 len = 0
@@ -204,7 +204,7 @@ If we want to use the characters inside the loop, we can define the name of the
 variable that will hold them during iteration. This is done by the syntax
 `... s -> car`
 
-```
+```python
 # count the number of 'a'
 s = 'abracadabra'
 nb = 0
@@ -216,7 +216,7 @@ nb = 0
 
 `->` can be used in this kind of loop
 
-```
+```python
 # search if a character is inside a string
 s = 'abracadadra'
 
@@ -229,7 +229,7 @@ searched = 'd'
 
 This syntax can be also used if the argument of `...` is a number
 
-```
+```python
 ... 10 -> i
     >> i
 ```
@@ -238,18 +238,18 @@ functions
 ---------
 Functions are defined with the function name, a list of parameters and `:`.
 When the function is called, its code block is executed.
-```
+```python
 f(x):
     >> x
 ```
 To define a return value, use `->` followed by the value to return:
-```
+```python
 double(x):
     -> x * 2
 ```
 Reusing the code in the `...` section, we can define a function that returns
 the length of a list or a string:
-```
+```python
 len(x):
   result = 0
   ... x
@@ -257,7 +257,7 @@ len(x):
   -> result
 ```
 or a function that tests if a character is inside a string
-```
+```python
 has(string, char):
   ... string -> c
     c == char ?
@@ -270,7 +270,7 @@ has("abracadabra", "a") # "true"
 If a function has no explicit return value, `f()` is set to an undefined
 object, printed as `?`
 
-```
+```python
 f():
   ->
 >> f() # prints '?'
@@ -278,7 +278,7 @@ f():
 
 The undefined value is a unique object
 
-```
+```python
 f():
   ->
 g():
