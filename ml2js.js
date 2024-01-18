@@ -24,6 +24,8 @@ if ($M.isNode){
     _window=self
 }
 
+var current_token
+
 /*
 Utility functions
 =================
@@ -142,7 +144,7 @@ var $_SyntaxError = function (context, msg, indent){
         root = tree_node
     while(root.parent !== undefined){root = root.parent}
     var module = tree_node.module,
-        src = root.src,
+        src = $M.src,
         line_num = tree_node.line_num
     if(src){
         line_num = src.substr(0, $pos).split("\n").length
@@ -159,14 +161,14 @@ var $_SyntaxError = function (context, msg, indent){
         err.msg = msg
         err.type = "SyntaxError"
         err.line_num = line_num
-        err.pos = $pos
+        err.pos = pos
         throw err
     }else{
         var err = Error("IndentationError")
         err.msg = msg
         err.type = "IndentationError"
         err.line_num = line_num
-        err.pos = $pos
+        err.pos = pos
         throw err
     }
 }
@@ -345,7 +347,7 @@ this context. It is called by the method to_js() of the root node.
 var AbstractExprCtx = function(context, with_commas){
     this.type = 'abstract_expr'
     // allow expression with comma-separated values, or a single value ?
-    this.with_commas = with_commas
+    this.with_commas = false // with_commas
     this.parent = context
     this.tree = []
     context.tree[context.tree.length] = this
@@ -536,7 +538,7 @@ AssignCtx.prototype.transition = function(token, value){
         // If left is an id, update binding to the type of right operand
         return $transition(context.parent, 'eol')
     }
-    $_SyntaxError(context, 'token ' + token + ' after ' + context)
+    $_SyntaxError(context, 'unexpected token ' + token)
 }
 
 AssignCtx.prototype.toString = function(){
@@ -556,11 +558,32 @@ function assign(scope, context, left, right){
     }else if(left.type == 'sub'){
         console.log('left',left)
         return `$M.setitem(${left.value.to_js()}, ${left.tree[0].to_js()}, ${right})`
+    }
+}
 
+function augm_assign(sign, left, right){
+    while(left.type == 'expr'){
+        left = left.tree[0]
+    }
+    if(left.type == 'id'){
+        return `${left.value} = $M.augm_assign('${sign}', ${left.value}, ${right.to_js()})`
+    }else if(left.type == 'attribute'){
+        var left_value = left.value.to_js()
+        return `$M.setattr(${left_value}, '${left.name}', ` +
+            `$M.operations.add($M.getattr(${left_value}, ` +
+            `'${left.name}'), ${right.to_js()}))`
+    }else if(left.type == 'sub'){
+        console.log('left',left)
+        var obj = left.value.to_js(),
+            key = left.tree[0].to_js()
+        return `$M.setitem(${obj}, ${key}, ` +
+            `$M.operations.add($M.getitem(${obj}, ` +
+            `${key}), ${right.to_js()}))`
     }
 }
 
 AssignCtx.prototype.to_js = function(){
+    console.log('assign', this)
     this.js_processed = true
 
     var scope = $get_scope(this)
@@ -570,21 +593,9 @@ AssignCtx.prototype.to_js = function(){
     var right = this.tree[1]
     console.log('left', this.tree[0])
     if(this.sign == '='){
-        if(left.tree.length > 1){
-            // multiple assignment
-            var js = 'locals.$it = $M.make_iterable(' + right.to_js() + ');'
-            console.log(js)
-            for(var item of this.tree[0].tree){
-                js += assign(scope, this, item, 'locals.$it.next().value') + ';'
-            }
-            return js
-        }else{
-            return assign(scope, this, this.tree[0], right.to_js())
-        }
+        return assign(scope, this, this.tree[0], right.to_js())
     }else{
-        var left_js = left.to_js(),
-            right_js = right.to_js()
-        return `${left_js} = $M.augm_assign("${this.sign[0]}", ${left_js}, ${right_js})`
+        return augm_assign(this.sign, left, right)
     }
     /*
 
@@ -753,6 +764,9 @@ var CallArgCtx = function(context){
                     return $transition(context.parent, token, value)
                 }
             case 'eol':
+                if(context.parent.no_parenth){
+                    return $transition(context.parent, ')')
+                }
                 if(context.parent.parent.type == "struct"){
                     return $transition(context.parent.parent, token, value)
                 }
@@ -817,6 +831,10 @@ var CallCtx = function(context){
                             value)
                 }
                 $_SyntaxError(context, token)
+            case 'eol':
+                if(context.no_parenth){
+                    return context.parent
+                }
         }
 
         return $transition(context.parent, token, value)
@@ -834,6 +852,9 @@ var CallCtx = function(context){
         for(var i = 0, len = this.tree.length; i < len; i++){
             var arg = this.tree[i]
             positional.push(arg.tree[0].to_js())
+        }
+        if(this.parent instanceof OutputCtx){
+            return positional.join(", ")
         }
         return '$M.call(' + this.func.to_js() + ")(" +
             positional.join(", ") + ')'
@@ -995,6 +1016,22 @@ DefCtx.prototype.transform = function(node, rank){
     node.children.splice(0, 0, NodeJS(`var locals_${name} = {${this.args}}`))
 }
 
+var ElseCtx = function(context){
+    this.type = 'else'
+    this.parent = context
+    context.tree[context.tree.length] = this
+}
+
+ElseCtx.prototype.transition = function(token, value){
+    if(token != 'eol'){
+        $_SyntaxError('nothing should follow |')
+    }
+    return $transition(this.parent, token, value)
+}
+
+ElseCtx.prototype.to_js = function(){
+    return 'else'
+}
 
 var ExitCtx = function(context){
     // Class for keyword "exit"
@@ -1094,7 +1131,6 @@ var ExitCtx = function(context){
     }
 }
 
-
 var ExprCtx = function(context, name, with_commas){
     // Base class for expressions
     this.type = 'expr'
@@ -1168,6 +1204,17 @@ var ExprCtx = function(context, name, with_commas){
                   ctx = ctx.parent
               }
               return new IfCtx(expr)
+          case '??':
+              // if undefined; go to upper expression
+              var expr = context,
+                  ctx = context.parent
+              while(ctx){
+                  if(ctx.type == 'expr'){
+                      expr = ctx
+                  }
+                  ctx = ctx.parent
+              }
+              return new IfCtx(expr, true)
           case '->':
               if(context.parent instanceof LoopCtx){
                   return $transition(context.parent, token, value)
@@ -1754,8 +1801,9 @@ var IdCtx = function(context, value){
     }
 }
 
-function IfCtx(context){
+function IfCtx(context, test_undef){
     this.type = 'if'
+    this.test_undef = test_undef
     this.parent = context.parent
     var expr = context.parent.tree.pop()
     context.parent.tree.push(this)
@@ -1772,6 +1820,9 @@ IfCtx.prototype.transition = function(token, value){
 }
 
 IfCtx.prototype.to_js = function(){
+    if(this.test_undef){
+        return `if(${this.tree[0].to_js()} === undefined)`
+    }
     return `if(${this.tree[0].to_js()})`
 }
 
@@ -2089,7 +2140,6 @@ var LoopCtx = function(context){
             return new AbstractExprCtx(this, false)
 
         }
-        console.log(this, token, value)
         $_SyntaxError(context, 'unexpected token after loop')
     }
 
@@ -2106,7 +2156,7 @@ var LoopCtx = function(context){
             return "while(true)"
         }else{
             return `for(let ${this.varname} of ` +
-                     `$M.make_iterable(${this.tree[0].to_js()}))`
+                     `$M.make_iterator(${this.tree[0].to_js()}))`
         }
     }
 }
@@ -2167,10 +2217,14 @@ var NodeCtx = function(node){
                     case '<<':
                         return new AbstractExprCtx(new InputCtx(context), false)
                     case '>>':
-                        return new AbstractExprCtx(new OutputCtx(context), true)
+                        var call = new CallCtx(new OutputCtx(context))
+                        call.no_parenth = true
+                        return call
                     case '!':
                         var expr = new ExprCtx(context, 'not', false)
                         return new AbstractExprCtx(new NotCtx(expr), false)
+                    case '|':
+                        return new ElseCtx(context)
                 }
                 break
             case 'def':
@@ -2198,7 +2252,7 @@ var NodeCtx = function(node){
                 break
         }
         console.log('syntax error', 'token', token, 'after', context)
-        $_SyntaxError(context, 'token ' + token + ' after ' + context)
+        $_SyntaxError(context, 'unexpected token ' + token)
     }
 
     this.toString = function(){return 'node ' + this.tree}
@@ -2886,7 +2940,7 @@ var UnaryCtx = function(context,op){
     }
 }
 
-var $add_line_num = function(node,rank){
+var $add_line_num = function(node, rank){
     if(node.type == 'module'){
         var i = 0
         while(i < node.children.length){
@@ -2907,6 +2961,7 @@ var $add_line_num = function(node,rank){
         if(elt.type == 'condition' && elt.token == 'elif'){flag = false}
         else if(elt.type == 'except'){flag = false}
         else if(elt.type == 'single_kw'){flag = false}
+        else if(elt.type == 'else'){flag = false}
         if(flag){
             // add a trailing None for interactive mode
             var js = 'locals.$line_info = "' + line_num + ',' +
@@ -3075,6 +3130,8 @@ var kwdict = ["def", "exit", "if", "import", "loop"]
 var IDStart = /\p{L}|_/u,
     IDContinue = /\p{L}|[0-9]|_/u
 
+var pos
+
 var $tokenize = function(root, src) {
     var br_close = {")": "(", "]": "["},
         br_stack = "",
@@ -3093,8 +3150,9 @@ var $tokenize = function(root, src) {
         current = root,
         name = "",
         _type = null,
-        pos = 0,
         indent = null
+
+    pos = 0
 
     var module = root.module
 
@@ -3192,6 +3250,7 @@ var $tokenize = function(root, src) {
             var end = null
             _type = "string"
             end = pos + 1
+            raw = false
 
             var escaped = false,
                 zone = car,
@@ -3539,8 +3598,14 @@ var $tokenize = function(root, src) {
                 break
             case '?':
                 // if (previous expression)
-                context = $transition(context, '?')
-                pos++
+                if(src[pos + 1] == '?'){
+                    // if expr is undefined
+                    context = $transition(context, '??')
+                    pos += 2
+                }else{
+                    context = $transition(context, '?')
+                    pos++
+                }
                 break
             case '@':
                 context = $transition(context, '@')

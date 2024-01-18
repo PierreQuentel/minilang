@@ -37,6 +37,12 @@ $M.handle_error = function(err){
         $M.display("Syntax error: " + err.msg)
         $M.display("line " + err.line_num)
         $M.display(src.split("\n")[err.line_num - 1])
+        var start = err.pos
+        while(start >= 0 && src[start] != '\n'){
+            start--
+        }
+        var nb = Math.max(err.pos - start - 1, 0)
+        $M.display(' '.repeat(nb) + '^')
     }else{
         $M.display(err.message)
         console.log(err)
@@ -367,7 +373,7 @@ $M.setitem = function(obj, key, value){
 }
 
 $M.augm_assign = function(sign, left, right){
-    if(sign == '+'){
+    if(sign == '+='){
         if(left instanceof Table){
             if(right instanceof Table){
                 for(item of right.items){
@@ -379,8 +385,8 @@ $M.augm_assign = function(sign, left, right){
                 return left
             }
             throw $M.Error(`cannot add ${$M.get_class(right)} to table`)
-        }else if(typeof left == 'number'){
-            if(typeof right == 'number'){
+        }else if(typeof left == 'number' || typeof left == 'string'){
+            if(typeof right == 'number' || typeof right == 'string'){
                 return left + right
             }
             throw $M.Error(`cannot add ${$M.get_class(right)} to number`)
@@ -389,17 +395,31 @@ $M.augm_assign = function(sign, left, right){
         if(typeof left == 'number'){
             if(typeof right == 'number'){
                 switch(sign){
-                    case '+':
+                    case '+=':
                         return left + right
-                    case '-':
+                    case '-=':
                         return left - right
-                    case '*':
+                    case '*=':
                         return left * right
-                    case '/':
+                    case '/=':
                         return left / right
                 }
             }
             throw $M.Error(`${sign} not supported between ${$M.get_class(right)} and number`)
+        }else if(typeof left == 'string'){
+            if(typeof right == 'string' || typeof right == 'number'){
+                switch(sign){
+                    case '+=':
+                        console.log('augm assign returns', left + right)
+                        return left + right
+                    case '-=':
+                        return left - right
+                    case '*=':
+                        return left * right
+                    case '/=':
+                        return left / right
+                }
+            }
         }
     }
 }
@@ -705,7 +725,7 @@ $M.use = function(module, code){
     $M.imported[module] = locals
 }
 
-$M.make_iterable = function(obj){
+$M.make_iterator = function(obj){
     if(typeof obj == "number"){
         return new Slice(0, obj)[Symbol.iterator]()
     }else if(typeof obj == "string" || Array.isArray(obj)){
@@ -716,6 +736,14 @@ $M.make_iterable = function(obj){
         return obj[Symbol.iterator]()
     }
     throw $M.error('object is not iterable')
+}
+
+$M.unpack = function(obj){
+    // same as make_iterable, except for Table
+    if(obj instanceof Table){
+        return obj.items[Symbol.iterator]()
+    }
+    return $M.make_iterator(obj)
 }
 
 })(__MINILANG__)

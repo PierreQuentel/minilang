@@ -114,16 +114,6 @@ pos = Position(2, 5)
 pos.x # 2
 ```
 
-Multiple assignment
-===================
-```python
-x, y = 0, 4
-x, y = 'ab'
-a, b = x, y
-t = []
-t.x, t['y'] = 8, 9 # t is [x=8, y=9]
-```
-
 Printing values
 ===============
 ```python
@@ -150,16 +140,6 @@ Programs
 ========
 Programs are about conditions, loops and functions.
 
-We use only 3 signs, one for each of these features : `?` for conditions,
-`...` for loops, `:` for functions.
-
-Each of these signs have an associated "code block", the instructions that
-are executed if the condition is true / inside the loop / when the function is
-called.
-
-Additionaly, a 4th sign `->` is used to exit from a loop or return from a
-function.
-
 
 condition
 ---------
@@ -174,6 +154,15 @@ its indentation.
 
 If the condition is a variable, it is considered false if it is the empty
 string, the empty list, or the number 0. Otherwise it is consired true.
+
+An 'else' clause can be introduced by `|`
+
+```python
+x > 0 ?
+  >> 'positive'
+|
+  >> 'negative'
+```
 
 loop
 ----
